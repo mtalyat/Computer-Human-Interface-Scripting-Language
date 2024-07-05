@@ -168,42 +168,72 @@ class Image
 {
 private:
 	cv::Mat m_image;
-	cv::Point m_point;
 
 public:
 	Image() = default;
 	Image(cv::Mat const image)
 		: m_image(image)
-		, m_point()
 	{}
 	Image(cv::Mat const image, cv::Point const point)
 		: m_image(image)
-		, m_point(point)
 	{}
 
 	cv::Mat& get() { return m_image; }
 	cv::Mat const& get() const { return m_image; }
 	bool empty() const { return m_image.empty(); }
-	cv::Point get_point() const { return m_point; }
 	int get_width() const { return m_image.cols; }
 	int get_height() const { return m_image.rows; }
 	cv::Point get_size() const { return cv::Point{ get_width(), get_height() }; }
-	cv::Point get_center() const { return cv::Point{ m_point.x + get_width() / 2, m_point.y + get_height() / 2 }; }
 	Image clone() const
 	{
 		cv::Mat mat;
 		m_image.copyTo(mat);
-		return Image(mat, m_point);
+		return Image(mat);
 	}
 	std::string to_string() const
 	{
 		if (m_image.empty()) return "Image(empty)";
 
-		return std::format("Image({}, {}, {}, {})", m_point.x, m_point.y, get_width(), get_height());
+		return std::format("Image({}, {})", get_width(), get_height());
 	}
 };
 
-using Value = std::variant<nullptr_t, Image, std::string, int, double>;
+class Match
+{
+private:
+	cv::Point m_size;
+	cv::Point m_point;
+
+public:
+	Match() = default;
+	Match(cv::Point const size, cv::Point const point)
+		: m_size(size), m_point(point) {}
+
+	cv::Point get_size() const { return m_size; }
+	cv::Point get_point() const { return m_point; }
+	cv::Point get_center() const { return m_point + m_size / 2; }
+	bool empty() const { return !m_size.x && !m_size.y; }
+};
+
+class MatchCollection
+{
+private:
+	cv::Point m_size;
+	std::vector<cv::Point> m_points;
+
+public:
+	MatchCollection() = default;
+	MatchCollection(cv::Point const size, std::vector<cv::Point> const& points)
+		: m_size(size), m_points(points) {}
+
+	cv::Point get_size() const { return m_size; }
+	size_t count() const { return m_points.size(); }
+	cv::Point get_point(size_t const index) const { return m_points.at(index); }
+	Match get(size_t const index) const { return Match(m_size, m_points.at(index)); }
+	bool empty() const { return m_points.empty(); }
+};
+
+using Value = std::variant<nullptr_t, Image, Match, MatchCollection, std::string, int, double>;
 
 double value_to_number(Value const& value)
 {
@@ -214,6 +244,14 @@ double value_to_number(Value const& value)
 	else if (std::holds_alternative<Image>(value))
 	{
 		return static_cast<double>(!std::get<Image>(value).empty());
+	}
+	else if (std::holds_alternative<Match>(value))
+	{
+		return static_cast<double>(!std::get<Match>(value).empty());
+	}
+	else if (std::holds_alternative<MatchCollection>(value))
+	{
+		return static_cast<double>(!std::get<MatchCollection>(value).empty());
 	}
 	else if (std::holds_alternative<int>(value))
 	{
@@ -307,6 +345,7 @@ enum ChislToken
 	CHISL_KEYWORD_CROP = 21010, // crop <name> to <x> <y> <w> <h>
 	CHISL_KEYWORD_FIND = 21020, // find <name> by <template> in <image>
 	CHISL_KEYWORD_FIND_WITH = 21021, // find <name> by <template> in <image> with <threshold>
+	CHISL_KEYWORD_FIND_ALL = 21022, // find all <name> by <template> in <image> with <threshold>
 	CHISL_KEYWORD_READ = 21030, // read <name> from <image>
 	CHISL_KEYWORD_DRAW = 21040, // draw <match> on <image>
 	CHISL_KEYWORD_DRAW_RECT = 21041, // draw <x> <y> <w> <h> on <image>
@@ -397,6 +436,7 @@ ChislToken parse_token_type(std::string const& str)
 		{ "capture", CHISL_KEYWORD_CAPTURE },
 		{ "crop", CHISL_KEYWORD_CROP },
 		{ "find", CHISL_KEYWORD_FIND },
+		{ "find all", CHISL_KEYWORD_FIND_ALL },
 		{ "read", CHISL_KEYWORD_READ },
 		{ "draw", CHISL_KEYWORD_DRAW },
 
@@ -461,6 +501,7 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_CROP, "crop" },
 		{ CHISL_KEYWORD_FIND, "find" },
 		{ CHISL_KEYWORD_FIND_WITH, "find with" },
+		{ CHISL_KEYWORD_FIND_ALL, "find all" },
 		{ CHISL_KEYWORD_READ, "read" },
 		{ CHISL_KEYWORD_DRAW, "draw" },
 		{ CHISL_KEYWORD_DRAW_RECT, "draw rect" },
@@ -721,7 +762,7 @@ Image crop(Image& image, int const x, int const y, int const w, int const h)
 	return Image(image.get()(rect));
 }
 
-std::optional<Image> find(Image& image, Image& templateImage, double const threshold)
+std::optional<Match> find(Image& image, Image& templateImage, double const threshold)
 {
 	try {
 		cv::Mat result;
@@ -731,21 +772,12 @@ std::optional<Image> find(Image& image, Image& templateImage, double const thres
 		cv::Point minLoc, maxLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
 
-		// Threshold filter: Find all locations where the correlation coefficient is above 0.8
-		std::vector<cv::Point> matches; // Vector to store matching locations
-
-		for (int y = 0; y < result.rows; ++y) {
-			for (int x = 0; x < result.cols; ++x) {
-				double value = result.at<float>(y, x);
-				if (value >= threshold) {
-					matches.push_back(cv::Point(x, y));
-				}
-			}
+		if (result.at<float>(maxLoc.y, maxLoc.x) < threshold)
+		{
+			return std::nullopt;
 		}
 
-		if (matches.empty()) return std::nullopt;
-
-		return Image(templateImage.get(), matches.front());
+		return Match(templateImage.get_size(), maxLoc);
 	}
 	catch (const cv::Exception& ex) {
 		std::cerr << "OpenCV exception: " << ex.what() << std::endl;
@@ -761,7 +793,44 @@ std::optional<Image> find(Image& image, Image& templateImage, double const thres
 	}
 }
 
-void draw(Image& image, Image& match, cv::Scalar const color = cv::Scalar(0, 0, 255), int width = 2)
+std::optional<MatchCollection> find_all(Image& image, Image& templateImage, double const threshold)
+{
+	try {
+		cv::Mat result;
+		cv::matchTemplate(image.get(), templateImage.get(), result, cv::TM_CCOEFF_NORMED);
+
+		std::vector<cv::Point> points;
+
+		int w = templateImage.get_width();
+		int h = templateImage.get_height();
+
+		for (int y = 0; y < result.rows; ++y) {
+			for (int x = 0; x < result.cols; ++x) {
+				double value = result.at<float>(y, x);
+				if (value >= threshold) {
+					cv::Point point(x, y);
+					points.push_back(point);
+				}
+			}
+		}
+
+		return MatchCollection(templateImage.get_size(), points);
+	}
+	catch (const cv::Exception& ex) {
+		std::cerr << "OpenCV exception: " << ex.what() << std::endl;
+		return std::nullopt;
+	}
+	catch (const std::exception& ex) {
+		std::cerr << "Standard exception: " << ex.what() << std::endl;
+		return std::nullopt;
+	}
+	catch (...) {
+		std::cerr << "Unknown exception occurred." << std::endl;
+		return std::nullopt;
+	}
+}
+
+void draw(Image& image, Match const& match, cv::Scalar const color = cv::Scalar(0, 0, 255), int width = 2)
 {
 	cv::rectangle(image.get(), match.get_point(), match.get_point() + match.get_size(), color, width);
 }
@@ -1651,11 +1720,7 @@ public:
 				// operand
 
 				// convert to number somehow
-				if (token.is<Image>())
-				{
-					operands.push_back(!token.get<Image>().empty());
-				}
-				else if (token.is<std::string>())
+				if (token.is<std::string>())
 				{
 					// if can parse, parse. Otherwise get variable
 					std::string str = token.get<std::string>();
@@ -1671,13 +1736,10 @@ public:
 						operands.push_back(value_to_number(variableValue));
 					}
 				}
-				else if (token.is<int>())
+				else
 				{
-					operands.push_back(token.get<int>());
-				}
-				else if (token.is<double>())
-				{
-					operands.push_back(token.get<double>());
+					// no variable: treat as normal
+					operands.push_back(value_to_number(token.get_value()));
 				}
 			}
 		}
@@ -1778,7 +1840,7 @@ public:
 				break;
 			}
 
-			std::optional<Image> found = find(image, templateImage, DEFAULT_THRESHOLD);
+			std::optional<Match> found = find(image, templateImage, DEFAULT_THRESHOLD);
 			if (!found.has_value()) break;
 
 			m_scope.set(command.get_arg<std::string>(0), found.value());
@@ -1802,10 +1864,34 @@ public:
 			}
 
 			double threshold = command.get_arg<double>(6);
-			std::optional<Image> found = find(image, templateImage, threshold);
+			std::optional<Match> found = find(image, templateImage, threshold);
 			if (!found.has_value()) break;
 
 			m_scope.set(command.get_arg<std::string>(0), found.value());
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_ALL:
+		{
+			Image templateImage = command.get_variable<Image>(3, m_scope);
+			if (templateImage.get().empty())
+			{
+				command.fail("Find template image does not exist.");
+				break;
+			}
+
+			Image image = command.get_variable<Image>(5, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find image does not exist.");
+				break;
+			}
+
+			double threshold = command.get_arg<double>(7);
+			std::optional<MatchCollection> found = find_all(image, templateImage, threshold);
+			if (!found.has_value()) break;
+
+			m_scope.set(command.get_arg<std::string>(1), found.value());
 
 			break;
 		}
@@ -1814,17 +1900,17 @@ public:
 			break;
 		case CHISL_KEYWORD_DRAW:
 		{
-			Image match = command.get_variable<Image>(0, m_scope);
-			if (match.get().empty())
+			Match match = command.get_variable<Match>(0, m_scope);
+			if (match.empty())
 			{
-				command.fail("Draw match image does not exist.");
+				command.fail("The match to draw does not exist.");
 				break;
 			}
 
 			Image image = command.get_variable<Image>(2, m_scope);
 			if (image.get().empty())
 			{
-				command.fail("Draw match image does not exist.");
+				command.fail("The image to draw on does not exist.");
 				break;
 			}
 
@@ -1888,14 +1974,14 @@ public:
 			break;
 		case CHISL_KEYWORD_MOUSE_SET_MATCH:
 		{
-			Image image = command.get_variable<Image>(1, m_scope);
-			if (image.get().empty())
+			Match match = command.get_variable<Match>(1, m_scope);
+			if (match.empty())
 			{
 				command.fail("Image does not exist.");
 				break;
 			}
 
-			cv::Point center = image.get_center();
+			cv::Point center = match.get_center();
 			mouse_set(center.x, center.y);
 			break;
 		}
