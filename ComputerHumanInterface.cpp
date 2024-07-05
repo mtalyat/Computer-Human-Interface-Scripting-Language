@@ -100,6 +100,57 @@ WORD string_to_key(const std::string& keyString) {
 	}
 }
 
+int parse_int(const std::string& str) {
+	// Regular expression to match a valid integer
+	std::regex re(R"(^[-+]?\d+$)");
+
+	int result = 0;
+
+	// Check if the string matches the regex
+	if (std::regex_match(str, re))
+	{
+		try
+		{
+			result = std::stoi(str);
+		}
+		catch (const std::out_of_range& e)
+		{
+			std::cerr << "Out of range error: " << e.what() << std::endl;
+		}
+		catch (const std::invalid_argument& e)
+		{
+			std::cerr << "Invalid argument error: " << e.what() << std::endl;
+		}
+	}
+	return result;
+}
+
+double parse_double(const std::string& str) {
+	// Regular expression to match a valid integer
+	std::regex re(R"(^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$)");
+
+	double result = 0;
+
+	// Check if the string matches the regex
+	if (std::regex_match(str, re))
+	{
+		try
+		{
+			result = std::stod(str);
+		}
+		catch (const std::out_of_range& e)
+		{
+			std::cerr << "Out of range error: " << e.what() << std::endl;
+		}
+		catch (const std::invalid_argument& e)
+		{
+			std::cerr << "Invalid argument error: " << e.what() << std::endl;
+		}
+	}
+	return result;
+}
+
+
 /// <summary>
 /// Holds data for an image.
 /// </summary>
@@ -418,6 +469,7 @@ public:
 
 	ChislToken get_token() const { return m_token; }
 	Value const& get_value() const { return m_value; }
+	void set_value(Value const& value) { m_value = value; }
 	template<typename T>
 	T get() const
 	{
@@ -918,7 +970,7 @@ public:
 		case CHISL_KEYWORD_CAPTURE_AT:
 			return verify_args_size(6) && verify_keyword(1, "at");
 		case CHISL_KEYWORD_CROP:
-			return verify_args_size(6) && verify_keyword(1, "by");
+			return verify_args_size(6) && verify_keyword(1, "at");
 		case CHISL_KEYWORD_FIND:
 			return verify_args_size(5) && verify_keyword(1, "by") && verify_keyword(3, "in");
 		case CHISL_KEYWORD_FIND_WITH:
@@ -981,6 +1033,103 @@ public:
 		}
 	}
 
+	void fix()
+	{
+		switch (m_token)
+		{
+		case CHISL_KEYWORD_SET:
+			break;
+		case CHISL_KEYWORD_LOAD:
+			break;
+		case CHISL_KEYWORD_SAVE:
+			break;
+		case CHISL_KEYWORD_DELETE:
+			break;
+		case CHISL_KEYWORD_COPY:
+			break;
+		case CHISL_KEYWORD_CAPTURE:
+			break;
+		case CHISL_KEYWORD_CAPTURE_AT:
+			change_arg_to_int(2);
+			change_arg_to_int(3);
+			change_arg_to_int(4);
+			change_arg_to_int(5);
+			break;
+		case CHISL_KEYWORD_CROP:
+			change_arg_to_int(2);
+			change_arg_to_int(3);
+			change_arg_to_int(4);
+			change_arg_to_int(5);
+			break;
+		case CHISL_KEYWORD_FIND:
+			break;
+		case CHISL_KEYWORD_FIND_WITH:
+			change_arg_to_int(6);
+			break;
+		case CHISL_KEYWORD_READ:
+			break;
+		case CHISL_KEYWORD_DRAW:
+			break;
+		case CHISL_KEYWORD_DRAW_RECT:
+			change_arg_to_int(0);
+			change_arg_to_int(1);
+			change_arg_to_int(2);
+			change_arg_to_int(3);
+			break;
+		case CHISL_KEYWORD_WAIT:
+			change_arg_to_int(0);
+			break;
+		case CHISL_KEYWORD_PAUSE:
+			break;
+		case CHISL_KEYWORD_PRINT:
+			break;
+		case CHISL_KEYWORD_SHOW:
+			break;
+		case CHISL_KEYWORD_MOUSE_SET:
+			change_arg_to_int(1);
+			change_arg_to_int(2);
+			break;
+		case CHISL_KEYWORD_MOUSE_SET_MATCH:
+			break;
+		case CHISL_KEYWORD_MOUSE_MOVE:
+			change_arg_to_int(1);
+			change_arg_to_int(2);
+			break;
+		case CHISL_KEYWORD_MOUSE_PRESS:
+			break;
+		case CHISL_KEYWORD_MOUSE_RELEASE:
+			break;
+		case CHISL_KEYWORD_MOUSE_CLICK:
+			break;
+		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
+			break;
+		case CHISL_KEYWORD_MOUSE_SCROLL:
+			break;
+		case CHISL_KEYWORD_KEY_PRESS:
+			break;
+		case CHISL_KEYWORD_KEY_RELEASE:
+			break;
+		case CHISL_KEYWORD_KEY_TYPE:
+			break;
+		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
+			break;
+		case CHISL_KEYWORD_IF:
+			break;
+		case CHISL_KEYWORD_ELSE_IF:
+			break;
+		case CHISL_KEYWORD_ELSE:
+			break;
+		case CHISL_KEYWORD_LOOP:
+			break;
+		case CHISL_KEYWORD_LOOP_WHILE:
+			break;
+		case CHISL_KEYWORD_BREAK:
+			break;
+		case CHISL_KEYWORD_CONTINUE:
+			break;
+		}
+	}
+
 	void execute(Scope& scope) const
 	{
 		switch (m_token)
@@ -1036,7 +1185,7 @@ public:
 		case CHISL_KEYWORD_CROP:
 		{
 			std::string name = get_arg<std::string>(0);
-			std::optional<Image> image = verify_type<Image>(0, scope);
+			std::optional<Image> image = get_variable<Image>(0, scope);
 			if (!image.has_value()) break;
 
 			image = crop(image.value(),
@@ -1415,21 +1564,33 @@ public:
 	}
 
 private:
+	void change_arg_to_int(size_t const index)
+	{
+		m_args.at(index).set_value(parse_int(m_args.at(index).get<std::string>()));
+	}
+
+	void change_arg_to_double(size_t const index)
+	{
+		m_args.at(index).set_value(parse_double(m_args.at(index).get<std::string>()));
+	}
+
 	void fail_verification(std::string const& message) const
 	{
 		std::cerr << "Failed verification for \"" << string_token_type(m_token) << "\" on line " << "?" << ": " << message << std::endl;
 	}
 
 	template<typename T>
-	T verify_type(size_t const index, Scope& scope) const
+	bool verify_type(size_t const index) const
 	{
-		Value value = scope.get(get_arg<std::string>(index));
+		Value const& value = m_args.at(index).get_value();
+
 		if (!std::holds_alternative<T>(value))
 		{
 			fail_verification("Incorrect type.");
-			return T();
+			return false;
 		}
-		return std::get<T>(value);
+
+		return true;
 	}
 
 	bool verify_keyword(size_t const index, std::string const& word) const
@@ -1677,6 +1838,14 @@ public:
 		return valid;
 	}
 
+	void fix()
+	{
+		for (auto& command : m_commands)
+		{
+			command.fix();
+		}
+	}
+
 	void run()
 	{
 		m_index = 0;
@@ -1722,6 +1891,9 @@ int main(int argc, char* argv[])
 		std::cerr << "Validation failed.\n";
 		return false;
 	}
+
+	// parse from string to values if needed
+	program.fix();
 
 	// run program
 	program.run();

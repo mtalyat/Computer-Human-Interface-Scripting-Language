@@ -48,4 +48,12 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Continue.` | Returns to the beginning of the loop. |
 
 ### Example
-TODO
+    Capture screen.
+    Save screen to screen.png.
+    Load windows from windows.png.
+    Find match by windows in screen.
+    Draw match on screen.
+    Save screen to found_it.png.
+    Print "Found it!".
+    Set mouse to match.
+    Click mouse left.
