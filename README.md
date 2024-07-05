@@ -7,11 +7,6 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 - Identify and use elements and text on the screen.
 
 ## Syntax
-
-DEV NOTE:
-. for end of statement
-, for inside loops?
-
 | Usage | Description |
 |---|---|
 | `# This is a comment.` | Comment. |
@@ -21,21 +16,20 @@ DEV NOTE:
 | `Load <name> from <path>.` | Load a file from the path into the variable. |
 | `Save <name> to <path>.` | Saves a variable to the disk. |
 | `Delete <name>.` | Deletes the variable with the name. |
-| `Copy <variable> to <name>.` | Copies the value of `variable` to `name`. |
-| `Copy <variable> to <name> at <x> <y> <w> <h>.` | Copies the value of `variable` to `name`, and crops it.` |
-| `Crop <name> to <x> <y> <w> <h>.` | Crops the image in `name` to the x y w h. |
-| `Find <template> in <image>.` | Finds the `template` within `image` with 0.8 threshold. |
-| `Find <template> in <image> with <threshold>.` | Finds the `template` within `image`. |
-| `Clone <image>.` | Creates a clone of the `image`. |
-| `Read <image>.` | Reads all of the text in `image`. |
-| `Wait <milliseconds=1000>.` | Pauses for the given number of milliseconds. |
+| `Copy <name> to <destination>.` | Copies the value of `variable` to `name`. |
+| `Crop <image> at <x> <y> <w> <h>.` | Crops the image in `name` to the x y w h. |
+| `Find <name> by <template> in <image>.` | Finds the `template` within `image` with 0.8 threshold. |
+| `Find <name> by <template> in <image> with <threshold>.` | Finds the `template` within `image`. |
+| `Read <name> from <image>.` | Reads all of the text in `image`. |
+| `Draw <match> on <image>.` | Draws an outline of `match` onto `image`. |
+| `Draw <x> <y> <w> <h> on <image>.` | Draws a rectangle into `image`. |
+| `Wait <time> <ms/s/m/h>.` | Pauses for the given number of milliseconds. |
 | `Pause.` | Pauses until the user hits a key. |
 | `Print <value>.` | Prints the text or variable to the console. |
 | `Show <value>.` | Shows the text or variable. |
-| `Draw <match> on <image>.` | Draws an outline of `match` onto `image`. |
-| `Draw <x> <y> <w> <h> on <image>.` | Draws a rectangle into `image`. |
-| `Move mouse by <x> <y>.` | Moves the mouse relative to its current position. |
 | `Set mouse to <x> <y>.` | Sets the mouse to the position. |
+| `Set mouse to <match>.` | Sets the mouse to the match position. |
+| `Move mouse by <x> <y>.` | Moves the mouse relative to its current position. |
 | `Press mouse <button=left>.` | Sends a mouse button press event to the OS. |
 | `Release mouse <button=left>.` | Sends a mouse button release event to the OS. |
 | `Click mouse <button=left>.` | Sends a mouse down and mouse up event to the OS. |
@@ -54,39 +48,4 @@ DEV NOTE:
 | `Continue.` | Returns to the beginning of the loop. |
 
 ### Example
-
-    Capture screen.
-    Load tmp from template.png.
-    Set i to 0.
-    Loop while i < 10:
-        Print i,
-        Set i to i + 1.
-    Set x to (find tmp in screen).
-    Draw x on screen.
-    Show screen.
-
-Loops and conditionals can be written multiple ways.
-
-Multi-line:
-
-    Loop:
-        If x < 5:
-            Set x to x * 2.
-        Else:
-            Set x to x - 3.
-        Capture screen,
-        load y from image.png,
-        find y in screen,
-        if x > 6:
-            Break.
-        .
-
-Single line:
-
-    Loop: If x < 5: Set x to x * 2. Else: Set x to x - 3. Capture screen, load y from image.png, find y in screen, if x > 6: Break. .
-
-
-
-
-
-
+TODO

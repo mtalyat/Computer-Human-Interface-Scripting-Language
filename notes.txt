@@ -1,0 +1,3 @@
+Finding comments:		#.*?(\.|$)
+Getting a line:			.*?[\.\,:;](\s|$)
+Token:					"([^"]*)"|\d?\.\d+|\b[\w.]+\b( (key|mouse))?|[\<\>]\=?|[\.\,\*\-;:#\(\)]
