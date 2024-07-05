@@ -277,22 +277,19 @@ enum ChislToken
 	//		Punctuation
 	CHISL_PUNCT_COMMENT = 10000, // #
 	CHISL_PUNCT_COMMIT = 10010, // .
-	CHISL_PUNCT_PARTIAL = 10020, // ,
-	CHISL_PUNCT_OPEN_GROUP = 10030, // (
-	CHISL_PUNCT_CLOSE_GROUP = 10040, // )
-	CHISL_PUNCT_ADD = 10050, // +
-	CHISL_PUNCT_SUBTRACT = 10060, // -
-	CHISL_PUNCT_MULTIPLY = 10070, // *
-	CHISL_PUNCT_DIVIDE = 10080, // /
-	CHISL_PUNCT_GREATER_THAN = 10090, // >
-	CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO = 10100, // >=
-	CHISL_PUNCT_LESS_THAN = 10110, // <
-	CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO = 10120, // <=
-	CHISL_PUNCT_EQUAL_TO = 10130, // ==
-	CHISL_PUNCT_NOT_EQUAL_TO = 10140, // !=
-	CHISL_PUNCT_OPEN_SCOPE = 10150, // :
-	CHISL_PUNCT_CLOSE_SCOPE = 10160, // ;
-	CHISL_PUNCT_END_OF_LINE = 10170, // \n
+	CHISL_PUNCT_OPEN_GROUP = 10020, // (
+	CHISL_PUNCT_CLOSE_GROUP = 10030, // )
+	CHISL_PUNCT_ADD = 10040, // +
+	CHISL_PUNCT_SUBTRACT = 10050, // -
+	CHISL_PUNCT_MULTIPLY = 10060, // *
+	CHISL_PUNCT_DIVIDE = 10070, // /
+	CHISL_PUNCT_GREATER_THAN = 10080, // >
+	CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO = 10090, // >=
+	CHISL_PUNCT_LESS_THAN = 10100, // <
+	CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO = 10110, // <=
+	CHISL_PUNCT_EQUAL_TO = 10120, // ==
+	CHISL_PUNCT_NOT_EQUAL_TO = 10130, // !=
+	CHISL_PUNCT_END_OF_LINE = 10140, // \n
 
 	CHISL_PUNCT_LAST = CHISL_PUNCT_END_OF_LINE,
 
@@ -377,7 +374,6 @@ ChislToken parse_token_type(std::string const& str)
 	{
 		{ "#", CHISL_PUNCT_COMMENT },
 		{ ".", CHISL_PUNCT_COMMIT },
-		{ ",", CHISL_PUNCT_PARTIAL },
 		{ "(", CHISL_PUNCT_OPEN_GROUP },
 		{ ")", CHISL_PUNCT_CLOSE_GROUP },
 		{ "+", CHISL_PUNCT_ADD },
@@ -390,8 +386,6 @@ ChislToken parse_token_type(std::string const& str)
 		{ "<=", CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO },
 		{ "==", CHISL_PUNCT_EQUAL_TO },
 		{ "!=", CHISL_PUNCT_NOT_EQUAL_TO },
-		{ ":", CHISL_PUNCT_OPEN_SCOPE },
-		{ ";", CHISL_PUNCT_CLOSE_SCOPE },
 		{ "\n", CHISL_PUNCT_END_OF_LINE },
 
 		{ "set", CHISL_KEYWORD_SET },
@@ -442,7 +436,6 @@ std::string string_token_type(ChislToken const token)
 	{
 		{ CHISL_PUNCT_COMMENT, "#" },
 		{ CHISL_PUNCT_COMMIT, "." },
-		{ CHISL_PUNCT_PARTIAL, "," },
 		{ CHISL_PUNCT_OPEN_GROUP, "(" },
 		{ CHISL_PUNCT_CLOSE_GROUP, ")" },
 		{ CHISL_PUNCT_ADD, "+" },
@@ -455,8 +448,6 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO, "<=" },
 		{ CHISL_PUNCT_EQUAL_TO, "==" },
 		{ CHISL_PUNCT_NOT_EQUAL_TO, "!=" },
-		{ CHISL_PUNCT_OPEN_SCOPE, ":" },
-		{ CHISL_PUNCT_CLOSE_SCOPE, ";" },
 		{ CHISL_PUNCT_END_OF_LINE, "\n" },
 
 		{ CHISL_KEYWORD_SET, "set" },
@@ -1337,7 +1328,7 @@ private:
 std::vector<Token> tokenize(std::string const& str)
 {
 	// split into string tokens
-	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\,\\+\\-\\*\\/;:#\\(\\)]|\\n");
+	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
 	std::vector<std::string> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -1493,9 +1484,6 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 				// ignore filler
 				continue;
 			case CHISL_PUNCT_COMMIT:
-			case CHISL_PUNCT_PARTIAL:
-			case CHISL_PUNCT_OPEN_SCOPE:
-			case CHISL_PUNCT_CLOSE_SCOPE:
 				// done reading
 				state = STATE_DONE;
 				break;
