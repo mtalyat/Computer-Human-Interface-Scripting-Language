@@ -39,11 +39,9 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Release key <key>.` | Sends a key up event to the OS. |
 | `Type <value>.` | Sends a series of key up/downs of the phrase or variable to the OS. `delay` is set to 0.1. |
 | `Type <value> with <delay> delay.` | Sends a series of key up/downs of the phrase or variable to the OS. `delay` is the wait time between each character. |
-| `If <condition>:` | Runs the following code when `condition` is true. |
-| `Elif <condition>:` | Runs the following code when `condition` is true. |
-| `Else:` | Runs the following code when the previous condition was false. |
-| `Label <label>:` | Creates a label that can be gone to with a goto statement. |
+| `Label <label>.` | Creates a label that can be gone to with a goto statement. |
 | `Goto <label>.` | Starts executing at the given `label`. |
+| `Goto <label> if <condition>. | Goes to the label only if the `condition` is true. |
 
 ### Example
     Capture screen.
