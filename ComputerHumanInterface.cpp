@@ -1438,7 +1438,15 @@ public:
 
 		for (; m_index < lines; m_index++)
 		{
+			// execute the command
 			execute(m_commands.at(m_index));
+
+			// check for cancelation using escape
+			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) // & 0x8000 checks if down (MSB = 1 when down)
+			{
+				std::cout << "Program quit by user." << std::endl;
+				break;
+			}
 		}
 	}
 
