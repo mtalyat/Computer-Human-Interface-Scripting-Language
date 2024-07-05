@@ -935,6 +935,8 @@ public:
 	template<typename T>
 	T get_arg(size_t const index) const
 	{
+		if (index >= m_args.size()) return T();
+
 		return m_args.at(index).get<T>();
 	}
 
@@ -1102,8 +1104,11 @@ public:
 		case CHISL_KEYWORD_MOUSE_CLICK:
 			break;
 		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
+			change_arg_to_int(1);
 			break;
 		case CHISL_KEYWORD_MOUSE_SCROLL:
+			change_arg_to_int(0);
+			change_arg_to_int(1);
 			break;
 		case CHISL_KEYWORD_KEY_PRESS:
 			break;
@@ -1112,6 +1117,7 @@ public:
 		case CHISL_KEYWORD_KEY_TYPE:
 			break;
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
+			change_arg_to_double(2);
 			break;
 		case CHISL_KEYWORD_IF:
 			break;
@@ -1566,11 +1572,15 @@ public:
 private:
 	void change_arg_to_int(size_t const index)
 	{
+		if (index >= m_args.size()) return;
+
 		m_args.at(index).set_value(parse_int(m_args.at(index).get<std::string>()));
 	}
 
 	void change_arg_to_double(size_t const index)
 	{
+		if (index >= m_args.size()) return;
+
 		m_args.at(index).set_value(parse_double(m_args.at(index).get<std::string>()));
 	}
 
@@ -1681,7 +1691,7 @@ private:
 std::vector<Token> tokenize(std::string const& str)
 {
 	// split into string tokens
-	std::regex re("\"([^\"]*)\"|\\d?\\.\\d+|\\b[\\w.]+\\b( (key|mouse))?|[!=]=|[\\.\\,\\*\\-;:#\\(\\)]|\\n");
+	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\,\\*\\-;:#\\(\\)]|\\n");
 	std::vector<std::string> strTokens = string_split(str, re);
 
 	// parse into tokens
