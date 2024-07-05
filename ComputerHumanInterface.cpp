@@ -11,6 +11,10 @@
 #include <regex>
 #include <fstream>
 
+typedef std::string CHISL_STRING;
+typedef double CHISL_FLOAT;
+typedef long CHISL_INT;
+
 constexpr double DEFAULT_THRESHOLD = 0.8f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
 
@@ -213,6 +217,7 @@ public:
 	cv::Point get_point() const { return m_point; }
 	cv::Point get_center() const { return m_point + m_size / 2; }
 	bool empty() const { return !m_size.x && !m_size.y; }
+	std::string to_string() const { return std::format("Match({}, {}, {}, {})", m_point.x, m_point.y, m_size.x, m_size.y); }
 };
 
 class MatchCollection
@@ -338,6 +343,8 @@ enum ChislToken
 	CHISL_KEYWORD_SAVE = 20020, // save <name> to <path>
 	CHISL_KEYWORD_DELETE = 20030, // delete <name>
 	CHISL_KEYWORD_COPY = 20040, // copy <source> to <destination>
+	CHISL_KEYWORD_GET = 20050, // get <name> from <collection> at <index>
+	CHISL_KEYWORD_COUNT = 20060, // count <name> from <collection>
 
 	//	Images
 	CHISL_KEYWORD_CAPTURE = 21000, // capture <name>
@@ -345,7 +352,8 @@ enum ChislToken
 	CHISL_KEYWORD_CROP = 21010, // crop <name> to <x> <y> <w> <h>
 	CHISL_KEYWORD_FIND = 21020, // find <name> by <template> in <image>
 	CHISL_KEYWORD_FIND_WITH = 21021, // find <name> by <template> in <image> with <threshold>
-	CHISL_KEYWORD_FIND_ALL = 21022, // find all <name> by <template> in <image> with <threshold>
+	CHISL_KEYWORD_FIND_ALL = 21022, // find all <name> by <template> in <image>
+	CHISL_KEYWORD_FIND_ALL_WITH = 21023, // find all <name> by <template> in <image> with <threshold>
 	CHISL_KEYWORD_READ = 21030, // read <name> from <image>
 	CHISL_KEYWORD_DRAW = 21040, // draw <match> on <image>
 	CHISL_KEYWORD_DRAW_RECT = 21041, // draw <x> <y> <w> <h> on <image>
@@ -432,6 +440,8 @@ ChislToken parse_token_type(std::string const& str)
 		{ "save", CHISL_KEYWORD_SAVE },
 		{ "delete", CHISL_KEYWORD_DELETE },
 		{ "copy", CHISL_KEYWORD_COPY },
+		{ "get", CHISL_KEYWORD_GET },
+		{ "count", CHISL_KEYWORD_COUNT },
 
 		{ "capture", CHISL_KEYWORD_CAPTURE },
 		{ "crop", CHISL_KEYWORD_CROP },
@@ -495,6 +505,8 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_SAVE, "save" },
 		{ CHISL_KEYWORD_DELETE, "delete" },
 		{ CHISL_KEYWORD_COPY, "copy" },
+		{ CHISL_KEYWORD_GET, "get" },
+		{ CHISL_KEYWORD_COUNT, "count" },
 
 		{ CHISL_KEYWORD_CAPTURE, "capture" },
 		{ CHISL_KEYWORD_CAPTURE_AT, "capture at" },
@@ -502,6 +514,7 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_FIND, "find" },
 		{ CHISL_KEYWORD_FIND_WITH, "find with" },
 		{ CHISL_KEYWORD_FIND_ALL, "find all" },
+		{ CHISL_KEYWORD_FIND_ALL_WITH, "find all with" },
 		{ CHISL_KEYWORD_READ, "read" },
 		{ CHISL_KEYWORD_DRAW, "draw" },
 		{ CHISL_KEYWORD_DRAW_RECT, "draw rect" },
@@ -844,13 +857,27 @@ enum class MouseButton
 
 void print(Value const& value)
 {
-	if (std::holds_alternative<Image>(value))
+	if (std::holds_alternative<std::string>(value))
+	{
+		std::cout << std::get<std::string>(value) << std::endl;
+	}
+	else if (std::holds_alternative<Image>(value))
 	{
 		std::cout << std::get<Image>(value).to_string() << std::endl;
 	}
-	else if (std::holds_alternative<std::string>(value))
+	else if (std::holds_alternative<Match>(value))
 	{
-		std::cout << std::get<std::string>(value) << std::endl;
+		std::cout << std::get<Match>(value).to_string() << std::endl;
+	}
+	else if (std::holds_alternative<MatchCollection>(value))
+	{
+		MatchCollection collection = std::get<MatchCollection>(value);
+		size_t count = collection.count();
+		std::cout << "MatchCollection:";
+		for (size_t i = 0; i < count; i++)
+		{
+			std::cout << collection.get(i).to_string() << std::endl;
+		}
 	}
 	else if (std::holds_alternative<int>(value))
 	{
@@ -1054,6 +1081,11 @@ public:
 			fix_token(CHISL_KEYWORD_CAPTURE_AT, 1, "at");
 			break;
 		case CHISL_KEYWORD_FIND:
+			if (fix_token(CHISL_KEYWORD_FIND_ALL, 0, "all"))
+			{
+				fix_token(CHISL_KEYWORD_FIND_ALL_WITH, 6, "with");
+				break;
+			}
 			fix_token(CHISL_KEYWORD_FIND_WITH, 5, "with");
 			break;
 		case CHISL_KEYWORD_MOUSE_SET:
@@ -1123,6 +1155,10 @@ public:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_COPY:
 			return verify_args_size(3) && verify_keyword(1, "to");
+		case CHISL_KEYWORD_GET:
+			return verify_args_size(5, false) && verify_keyword(1, "from") && verify_keyword(3, "at");
+		case CHISL_KEYWORD_COUNT:
+			return verify_args_size(3) && verify_keyword(1, "from");
 		case CHISL_KEYWORD_CAPTURE:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_CAPTURE_AT:
@@ -1133,6 +1169,10 @@ public:
 			return verify_args_size(5) && verify_keyword(1, "by") && verify_keyword(3, "in");
 		case CHISL_KEYWORD_FIND_WITH:
 			return verify_args_size(7) && verify_keyword(1, "by") && verify_keyword(3, "in") && verify_keyword(5, "with");
+		case CHISL_KEYWORD_FIND_ALL:
+			return verify_args_size(6) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in");
+		case CHISL_KEYWORD_FIND_ALL_WITH:
+			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in") && verify_keyword(6, "with");
 		case CHISL_KEYWORD_READ:
 			return verify_args_size(3) && verify_keyword(1, "from");
 		case CHISL_KEYWORD_DRAW:
@@ -1197,6 +1237,10 @@ public:
 			break;
 		case CHISL_KEYWORD_COPY:
 			break;
+		case CHISL_KEYWORD_GET:
+			break;
+		case CHISL_KEYWORD_COUNT:
+			break;
 		case CHISL_KEYWORD_CAPTURE:
 			break;
 		case CHISL_KEYWORD_CAPTURE_AT:
@@ -1214,7 +1258,12 @@ public:
 		case CHISL_KEYWORD_FIND:
 			break;
 		case CHISL_KEYWORD_FIND_WITH:
-			change_arg_to_int(6);
+			change_arg_to_double(6);
+			break;
+		case CHISL_KEYWORD_FIND_ALL:
+			break;
+		case CHISL_KEYWORD_FIND_ALL_WITH:
+			change_arg_to_double(7);
 			break;
 		case CHISL_KEYWORD_READ:
 			break;
@@ -1362,12 +1411,14 @@ private:
 		return true;
 	}
 
-	void fix_token(ChislToken const token, size_t const index, std::string const& value)
+	bool fix_token(ChislToken const token, size_t const index, std::string const& value)
 	{
 		if (has_arg<std::string>(index, value))
 		{
 			m_token = token;
+			return true;
 		}
+		return false;
 	}
 
 	template<typename T>
@@ -1397,7 +1448,7 @@ private:
 std::vector<Token> tokenize(std::string const& str)
 {
 	// split into string tokens
-	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
+	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
 	std::vector<std::string> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -1655,7 +1706,6 @@ public:
 	Value evaluate(std::vector<Token> const& tokens)
 	{
 		if (tokens.empty()) return nullptr;
-		if (tokens.size() == 1) return value_to_number(tokens.front().get_value());
 
 		// assume in postfix notation
 		std::vector<double> operands;
@@ -1793,6 +1843,47 @@ public:
 			m_scope.set(command.get_arg<std::string>(2), value);
 			break;
 		}
+		case CHISL_KEYWORD_GET:
+		{
+			// get the collection
+			MatchCollection collection = command.get_variable<MatchCollection>(2, m_scope);
+
+			// get the index
+			Value indexValue = evaluate(command.get_args(4));
+
+			if (!std::holds_alternative<double>(indexValue))
+			{
+				command.fail("Invalid index.");
+				break;
+			}
+
+			long index = static_cast<long>(std::get<double>(indexValue));
+
+			if (index < 0 || index >= collection.count())
+			{
+				command.fail("Index out of range.");
+				break;
+			}
+
+			std::string name = command.get_arg<std::string>(0);
+
+			Value value = collection.get(index);
+			m_scope.set(name, value);
+
+			break;
+		}
+		case CHISL_KEYWORD_COUNT:
+		{
+			// get the collection
+			MatchCollection collection = command.get_variable<MatchCollection>(2, m_scope);
+
+			std::string name = command.get_arg<std::string>(0);
+
+			int count = static_cast<int>(collection.count());
+			m_scope.set(name, count);
+
+			break;
+		}
 		case CHISL_KEYWORD_CAPTURE:
 		{
 			Image image = screenshot();
@@ -1872,6 +1963,29 @@ public:
 			break;
 		}
 		case CHISL_KEYWORD_FIND_ALL:
+		{
+			Image templateImage = command.get_variable<Image>(3, m_scope);
+			if (templateImage.get().empty())
+			{
+				command.fail("Find template image does not exist.");
+				break;
+			}
+
+			Image image = command.get_variable<Image>(5, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find image does not exist.");
+				break;
+			}
+
+			std::optional<MatchCollection> found = find_all(image, templateImage, DEFAULT_THRESHOLD);
+			if (!found.has_value()) break;
+
+			m_scope.set(command.get_arg<std::string>(1), found.value());
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_ALL_WITH:
 		{
 			Image templateImage = command.get_variable<Image>(3, m_scope);
 			if (templateImage.get().empty())
