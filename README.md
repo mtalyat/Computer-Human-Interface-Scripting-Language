@@ -13,13 +13,15 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Capture <name>.` | Captures all of the screen and stores it in `name`. |
 | `Capture <name> at <x> <y> <w> <h>.` | Captures part of the screen and stores it in `name`. |
 | `Set <name> to <value>.` | Sets a variable to a value. |
+| `Get <name> from <collection> at <index>.` | Gets the value from a collection at the `index` and stores it in `name`. |
 | `Load <name> from <path>.` | Load a file from the path into the variable. |
 | `Save <name> to <path>.` | Saves a variable to the disk. |
 | `Delete <name>.` | Deletes the variable with the name. |
 | `Copy <name> to <destination>.` | Copies the value of `variable` to `name`. |
 | `Crop <image> at <x> <y> <w> <h>.` | Crops the image in `name` to the x y w h. |
-| `Find <name> by <template> in <image>.` | Finds the `template` within `image` with 0.8 threshold. |
-| `Find <name> by <template> in <image> with <threshold>.` | Finds the `template` within `image`. |
+| `Find <name> by <template> in <image>.` | Finds the best match of `template` within `image`. |
+| `Find <name> by <template> in <image> with <threshold>.` | Finds the best match of `template` within `image` equal to or above the given threshold. |
+| `Find all <name> by <template> in <image> with <threshold>.` | Finds all possible matches equal to or above the given threshold. |
 | `Read <name> from <image>.` | Reads all of the text in `image`. |
 | `Draw <match> on <image>.` | Draws an outline of `match` onto `image`. |
 | `Draw <x> <y> <w> <h> on <image>.` | Draws a rectangle into `image`. |
