@@ -184,6 +184,12 @@ public:
 		m_image.copyTo(mat);
 		return Image(mat, m_point);
 	}
+	std::string to_string() const
+	{
+		if (m_image.empty()) return "Image(empty)";
+
+		return std::format("Image({}, {}, {}, {})", m_point.x, m_point.y, get_width(), get_height());
+	}
 };
 
 using Value = std::variant<nullptr_t, Image, std::string, int, double>;
@@ -688,7 +694,8 @@ std::optional<Image> find(Image& image, Image& templateImage, double const thres
 
 		for (int y = 0; y < result.rows; ++y) {
 			for (int x = 0; x < result.cols; ++x) {
-				if (result.at<float>(y, x) >= threshold) {
+				double value = result.at<float>(y, x);
+				if (value >= threshold) {
 					matches.push_back(cv::Point(x, y));
 				}
 			}
@@ -723,6 +730,30 @@ enum class MouseButton
 	Right,
 	Middle
 };
+
+void print(Value const& value)
+{
+	if (std::holds_alternative<Image>(value))
+	{
+		std::cout << std::get<Image>(value).to_string() << std::endl;
+	}
+	else if (std::holds_alternative<std::string>(value))
+	{
+		std::cout << std::get<std::string>(value) << std::endl;
+	}
+	else if (std::holds_alternative<int>(value))
+	{
+		std::cout << std::get<int>(value) << std::endl;
+	}
+	else if (std::holds_alternative<double>(value))
+	{
+		std::cout << std::get<double>(value) << std::endl;
+	}
+	else
+	{
+		std::cerr << "Cannot print value." << std::endl;
+	}
+}
 
 void wait(DWORD const ms)
 {
@@ -1314,7 +1345,9 @@ public:
 			}
 			else
 			{
-				std::cout << get_variable<std::string>(0, scope) << std::endl;
+				Value value = scope.get(get_arg<std::string>(0));
+
+				print(value);
 			}
 			break;
 		}
