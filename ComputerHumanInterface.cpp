@@ -150,7 +150,6 @@ double parse_double(const std::string& str) {
 	return result;
 }
 
-
 /// <summary>
 /// Holds data for an image.
 /// </summary>
@@ -306,12 +305,10 @@ enum ChislToken
 	CHISL_KEYWORD_IF = 25000, // if <condition>
 	CHISL_KEYWORD_ELSE_IF = 25010, // elif <condition>
 	CHISL_KEYWORD_ELSE = 25020, // else
-	CHISL_KEYWORD_LOOP = 25030, // loop
-	CHISL_KEYWORD_LOOP_WHILE = 25031, // loop while <condition>
-	CHISL_KEYWORD_BREAK = 25040, // break
-	CHISL_KEYWORD_CONTINUE = 25050, // continue
+	CHISL_KEYWORD_LABEL = 25030, // label <label>:
+	CHISL_KEYWORD_GOTO = 25040, // goto <label>
 
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_CONTINUE,
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_GOTO,
 };
 
 ChislToken parse_token_type(std::string const& str)
@@ -368,9 +365,8 @@ ChislToken parse_token_type(std::string const& str)
 		{ "if", CHISL_KEYWORD_IF },
 		{ "elif", CHISL_KEYWORD_ELSE_IF },
 		{ "else", CHISL_KEYWORD_ELSE },
-		{ "loop", CHISL_KEYWORD_LOOP },
-		{ "break", CHISL_KEYWORD_BREAK },
-		{ "continue", CHISL_KEYWORD_CONTINUE }
+		{ "label", CHISL_KEYWORD_LABEL },
+		{ "goto", CHISL_KEYWORD_GOTO }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -443,10 +439,8 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_IF, "if" },
 		{ CHISL_KEYWORD_ELSE_IF, "elif" },
 		{ CHISL_KEYWORD_ELSE, "else" },
-		{ CHISL_KEYWORD_LOOP, "loop" },
-		{ CHISL_KEYWORD_LOOP_WHILE, "loop while" },
-		{ CHISL_KEYWORD_BREAK, "break" },
-		{ CHISL_KEYWORD_CONTINUE, "continue" }
+		{ CHISL_KEYWORD_LABEL, "label" },
+		{ CHISL_KEYWORD_GOTO, "goto" },
 	};
 
 	auto found = tokenStrings.find(token);
@@ -957,11 +951,12 @@ public:
 		case CHISL_KEYWORD_KEY_TYPE:
 			fix_token(CHISL_KEYWORD_KEY_TYPE_WITH_DELAY, 1, "with");
 			break;
-		case CHISL_KEYWORD_LOOP:
-			fix_token(CHISL_KEYWORD_LOOP_WHILE, 0, "while");
-			break;
 		}
 	}
+
+	ChislToken get_token() const { return m_token; }
+
+	Value get_arg_value(size_t const index) const { return m_args.at(index).get_value(); }
 
 	template<typename T>
 	T get_arg(size_t const index) const
@@ -1052,14 +1047,10 @@ public:
 			return verify_args_size(1, false);
 		case CHISL_KEYWORD_ELSE:
 			return verify_args_size(0);
-		case CHISL_KEYWORD_LOOP:
-			return verify_args_size(0);
-		case CHISL_KEYWORD_LOOP_WHILE:
-			return verify_args_size(2, false) && verify_keyword(0, "while");
-		case CHISL_KEYWORD_BREAK:
-			return verify_args_size(0);
-		case CHISL_KEYWORD_CONTINUE:
-			return verify_args_size(0);
+		case CHISL_KEYWORD_LABEL:
+			return verify_args_size(1);
+		case CHISL_KEYWORD_GOTO:
+			return verify_args_size(1);
 		default:
 			std::cerr << "Unable to verify \"" << string_token_type(m_token) << "\".";
 			return false;
@@ -1156,452 +1147,17 @@ public:
 			break;
 		case CHISL_KEYWORD_ELSE:
 			break;
-		case CHISL_KEYWORD_LOOP:
+		case CHISL_KEYWORD_LABEL:
 			break;
-		case CHISL_KEYWORD_LOOP_WHILE:
-			break;
-		case CHISL_KEYWORD_BREAK:
-			break;
-		case CHISL_KEYWORD_CONTINUE:
+		case CHISL_KEYWORD_GOTO:
 			break;
 		}
 	}
 
-	void execute(Scope& scope) const
+	void fail(std::string const& message) const
 	{
-		switch (m_token)
-		{
-		case CHISL_KEYWORD_SET:
-			scope.set(get_arg<std::string>(0), m_args.at(2).get_value());
-			break;
-		case CHISL_KEYWORD_LOAD:
-		{
-			std::optional<Value> value = file_read(get_arg<std::string>(2));
-			if (value.has_value()) scope.set(get_arg<std::string>(0), value.value());
-			break;
-		}
-		case CHISL_KEYWORD_SAVE:
-		{
-			Value value = scope.get(get_arg<std::string>(0));
-			file_write(get_arg<std::string>(2), value);
-			break;
-		}
-		case CHISL_KEYWORD_DELETE:
-			scope.unset(get_arg<std::string>(0));
-			break;
-		case CHISL_KEYWORD_COPY:
-		{
-			Value value = scope.get(get_arg<std::string>(0));
-
-			// if image, copy differently
-			if (std::holds_alternative<Image>(value))
-			{
-				value = std::get<Image>(value).clone();
-			}
-
-			scope.set(get_arg<std::string>(2), value);
-			break;
-		}
-		case CHISL_KEYWORD_CAPTURE:
-		{
-			Image image = screenshot();
-			scope.set(get_arg<std::string>(0), image);
-			break;
-		}
-		case CHISL_KEYWORD_CAPTURE_AT:
-		{
-			Image image = screenshot();
-			image = crop(image,
-				get_arg<int>(2),
-				get_arg<int>(3),
-				get_arg<int>(4),
-				get_arg<int>(5));
-			scope.set(get_arg<std::string>(0), image);
-			break;
-		}
-		case CHISL_KEYWORD_CROP:
-		{
-			std::string name = get_arg<std::string>(0);
-			std::optional<Image> image = get_variable<Image>(0, scope);
-			if (!image.has_value()) break;
-
-			image = crop(image.value(),
-				get_arg<int>(2),
-				get_arg<int>(3),
-				get_arg<int>(4),
-				get_arg<int>(5));
-			scope.set(name, image.value());
-			break;
-		}
-		case CHISL_KEYWORD_FIND:
-		{
-			Image templateImage = get_variable<Image>(2, scope);
-			if (templateImage.get().empty())
-			{
-				fail_verification("Find template image does not exist.");
-				break;
-			}
-
-			Image image = get_variable<Image>(4, scope);
-			if (image.get().empty())
-			{
-				fail_verification("Find image does not exist.");
-				break;
-			}
-
-			std::optional<Image> found = find(image, templateImage, DEFAULT_THRESHOLD);
-			if (!found.has_value()) break;
-
-			scope.set(get_arg<std::string>(0), found.value());
-
-			break;
-		}
-		case CHISL_KEYWORD_FIND_WITH:
-		{
-			Image templateImage = get_variable<Image>(2, scope);
-			if (templateImage.get().empty())
-			{
-				fail_verification("Find template image does not exist.");
-				break;
-			}
-
-			Image image = get_variable<Image>(4, scope);
-			if (image.get().empty())
-			{
-				fail_verification("Find image does not exist.");
-				break;
-			}
-
-			double threshold = get_arg<double>(6);
-			std::optional<Image> found = find(image, templateImage, threshold);
-			if (!found.has_value()) break;
-
-			scope.set(get_arg<std::string>(0), found.value());
-
-			break;
-		}
-		case CHISL_KEYWORD_READ:
-			std::cout << "TODO: READ\n";
-			break;
-		case CHISL_KEYWORD_DRAW:
-		{
-			Image match = get_variable<Image>(0, scope);
-			if (match.get().empty())
-			{
-				fail_verification("Draw match image does not exist.");
-				break;
-			}
-
-			Image image = get_variable<Image>(2, scope);
-			if (image.get().empty())
-			{
-				fail_verification("Draw match image does not exist.");
-				break;
-			}
-
-			draw(image, match);
-			break;
-		}
-		case CHISL_KEYWORD_DRAW_RECT:
-			std::cout << "TODO: DRAW RECT\n";
-			break;
-		case CHISL_KEYWORD_WAIT:
-		{
-			int time = get_arg<int>(0);
-			std::string type = get_arg<std::string>(1);
-
-			if (type == "ms")
-			{
-				wait(time);
-			}
-			else if (type == "s")
-			{
-				wait(time * 1000);
-			}
-			else if (type == "m")
-			{
-				wait(time * 60000);
-			}
-			else if (type == "h")
-			{
-				wait(time * 3600000);
-			}
-			else
-			{
-				fail_verification("Unknown wait type.");
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_PAUSE:
-			pause();
-			break;
-		case CHISL_KEYWORD_PRINT:
-		{
-			std::string arg = get_arg<std::string>(0);
-			if (arg.starts_with("\"") && arg.ends_with("\""))
-			{
-				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
-			}
-			else
-			{
-				Value value = scope.get(get_arg<std::string>(0));
-
-				print(value);
-			}
-			break;
-		}
-		case CHISL_KEYWORD_SHOW:
-			std::cout << "TODO SHOW\n";
-			break;
-		case CHISL_KEYWORD_MOUSE_SET:
-			mouse_set(get_arg<int>(1), get_arg<int>(2));
-			break;
-		case CHISL_KEYWORD_MOUSE_SET_MATCH:
-		{
-			Image image = get_variable<Image>(1, scope);
-			if (image.get().empty())
-			{
-				fail_verification("Image does not exist.");
-				break;
-			}
-
-			cv::Point center = image.get_center();
-			mouse_set(center.x, center.y);
-			break;
-		}
-		case CHISL_KEYWORD_MOUSE_MOVE:
-			mouse_move(get_arg<int>(1), get_arg<int>(2));
-			break;
-		case CHISL_KEYWORD_MOUSE_PRESS:
-		{
-			std::string button = get_arg<std::string>(0);
-
-			if (button == "left")
-			{
-				mouse_down(MouseButton::Left);
-			}
-			else if (button == "right")
-			{
-				mouse_down(MouseButton::Right);
-			}
-			else if (button == "middle")
-			{
-				mouse_down(MouseButton::Middle);
-			}
-			else
-			{
-				fail_verification("Unknown button type.");
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_MOUSE_RELEASE:
-		{
-			std::string button = get_arg<std::string>(0);
-
-			if (button == "left")
-			{
-				mouse_up(MouseButton::Left);
-			}
-			else if (button == "right")
-			{
-				mouse_up(MouseButton::Right);
-			}
-			else if (button == "middle")
-			{
-				mouse_up(MouseButton::Middle);
-			}
-			else
-			{
-				fail_verification("Unknown button type.");
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_MOUSE_CLICK:
-		{
-			std::string button = get_arg<std::string>(0);
-
-			if (button == "left")
-			{
-				mouse_click(MouseButton::Left);
-			}
-			else if (button == "right")
-			{
-				mouse_click(MouseButton::Right);
-			}
-			else if (button == "middle")
-			{
-				mouse_click(MouseButton::Middle);
-			}
-			else
-			{
-				fail_verification("Unknown button type.");
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
-		{
-			std::string button = get_arg<std::string>(0);
-
-			int times = get_arg<int>(1);
-
-			if (button == "left")
-			{
-				for (int i = 0; i < times; i++)
-				{
-					mouse_click(MouseButton::Left);
-				}
-			}
-			else if (button == "right")
-			{
-				for (int i = 0; i < times; i++)
-				{
-					mouse_click(MouseButton::Right);
-				}
-			}
-			else if (button == "middle")
-			{
-				for (int i = 0; i < times; i++)
-				{
-					mouse_click(MouseButton::Middle);
-				}
-			}
-			else
-			{
-				fail_verification("Unknown button type.");
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_MOUSE_SCROLL:
-		{
-			mouse_scroll(get_arg<int>(0), get_arg<int>(1));
-			break;
-		}
-		case CHISL_KEYWORD_KEY_PRESS:
-		{
-			std::string strKey = get_arg<std::string>(0);
-			WORD key = string_to_key(strKey);
-			if (!key)
-			{
-				fail_verification("Invalid key.");
-				break;
-			}
-
-			key_down(key);
-
-			break;
-		}
-		case CHISL_KEYWORD_KEY_RELEASE:
-		{
-			std::string strKey = get_arg<std::string>(0);
-			WORD key = string_to_key(strKey);
-			if (!key)
-			{
-				fail_verification("Invalid key.");
-				break;
-			}
-
-			key_up(key);
-
-			break;
-		}
-		case CHISL_KEYWORD_KEY_TYPE:
-		{
-			std::string str = get_arg<std::string>(0);
-
-			// if in quotes, type as string
-			if (str.starts_with("\"") && str.ends_with("\""))
-			{
-				// type string
-				key_type_string(str, DEFAULT_TYPING_DELAY);
-			}
-			else
-			{
-				// type key
-				WORD key = string_to_key(str);
-				if (!key)
-				{
-					fail_verification("Invalid key.");
-					break;
-				}
-
-				key_type(key);
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
-		{
-			std::string str = get_arg<std::string>(0);
-
-			int delay = get_arg<int>(2);
-
-			// if in quotes, type as string
-			if (str.starts_with("\"") && str.ends_with("\""))
-			{
-				// type string
-				key_type_string(str, delay);
-			}
-			else
-			{
-				// type key
-				WORD key = string_to_key(str);
-				if (!key)
-				{
-					fail_verification("Invalid key.");
-					break;
-				}
-
-				key_type(key);
-			}
-
-			break;
-		}
-		case CHISL_KEYWORD_IF:
-		{
-			std::cout << "TODO IF";
-			break;
-		}
-		case CHISL_KEYWORD_ELSE_IF:
-		{
-			std::cout << "TODO ELSE IF";
-			break;
-		}
-		case CHISL_KEYWORD_ELSE:
-		{
-			std::cout << "TODO ELSE";
-			break;
-		}
-		case CHISL_KEYWORD_LOOP:
-		{
-			std::cout << "TODO LOOP";
-			break;
-		}
-		case CHISL_KEYWORD_LOOP_WHILE:
-		{
-			std::cout << "TODO LOOP WHILE";
-			break;
-		}
-		case CHISL_KEYWORD_BREAK:
-		{
-			std::cout << "TODO BREAK";
-			break;
-		}
-		case CHISL_KEYWORD_CONTINUE:
-		{
-			std::cout << "TODO CONTINUE";
-			break;
-		}
-		default:
-			std::cerr << "Unable to execute \"" << string_token_type(m_token) << "\".";
-			break;
-		}
+		std::cerr << "\"" << string_token_type(m_token) << "\" failed: " << message << std::endl;
 	}
-
 private:
 	void change_arg_to_int(size_t const index)
 	{
@@ -1617,11 +1173,6 @@ private:
 		m_args.at(index).set_value(parse_double(m_args.at(index).get<std::string>()));
 	}
 
-	void fail_verification(std::string const& message) const
-	{
-		std::cerr << "Failed verification for \"" << string_token_type(m_token) << "\" on line " << "?" << ": " << message << std::endl;
-	}
-
 	template<typename T>
 	bool verify_type(size_t const index) const
 	{
@@ -1629,7 +1180,7 @@ private:
 
 		if (!std::holds_alternative<T>(value))
 		{
-			fail_verification("Incorrect type.");
+			fail("Incorrect type.");
 			return false;
 		}
 
@@ -1640,7 +1191,7 @@ private:
 	{
 		if (!has_arg<std::string>(index, word))
 		{
-			fail_verification(std::string("Missing keyword ").append(word).append(" at index ").append(std::to_string(index)).append("."));
+			fail(std::string("Missing keyword ").append(word).append(" at index ").append(std::to_string(index)).append("."));
 			return false;
 		}
 		return true;
@@ -1663,7 +1214,7 @@ private:
 		}
 		keywords = keywords.substr(0, keywords.size() - 1);
 
-		fail_verification(std::string("Missing keyword ").append(keywords).append(" at index ").append(std::to_string(index)).append("."));
+		fail(std::string("Missing keyword ").append(keywords).append(" at index ").append(std::to_string(index)).append("."));
 		return false;
 	}
 
@@ -1671,7 +1222,7 @@ private:
 	{
 		if ((exact && m_args.size() != size) || (!exact && m_args.size() < size))
 		{
-			fail_verification("Incorrect number of arguments.");
+			fail("Incorrect number of arguments.");
 			return false;
 		}
 		return true;
@@ -1683,7 +1234,7 @@ private:
 
 		if (count < minSize || count > maxSize)
 		{
-			fail_verification("Incorrect number of arguments.");
+			fail("Incorrect number of arguments.");
 			return false;
 		}
 		return true;
@@ -1799,6 +1350,7 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 				continue;
 			case CHISL_PUNCT_COMMIT:
 			case CHISL_PUNCT_PARTIAL:
+			case CHISL_PUNCT_OPEN_SCOPE:
 			case CHISL_PUNCT_CLOSE_SCOPE:
 				// done reading
 				state = STATE_DONE;
@@ -1847,18 +1399,30 @@ class Program
 private:
 	std::string m_path;
 	std::vector<Command> m_commands;
+	std::unordered_map<std::string, size_t> m_labels;
 	size_t m_index;
 	Scope m_scope;
 
 public:
 	Program(std::string const& path)
-		: m_path(path), m_commands(), m_index(), m_scope()
+		: m_path(path), m_commands(), m_labels(), m_index(), m_scope()
 	{
 		// convert to commands
 		std::optional<std::string> text = text_read(path);
 		if (!text.has_value()) return;
 		std::vector<Token> tokens = tokenize(text.value());
 		m_commands = commandize(tokens);
+
+		// find all labels
+		for (size_t i = 0; i < m_commands.size(); i++)
+		{
+			Command const& command = m_commands.at(i);
+
+			if (command.get_token() == CHISL_KEYWORD_LABEL)
+			{
+				m_labels.emplace(command.get_arg<std::string>(0), i);
+			}
+		}
 	}
 	~Program() = default;
 
@@ -1866,6 +1430,450 @@ public:
 	Scope& get_scope() { return m_scope; }
 	Scope const& get_scope() const { return m_scope; }
 	void set_index(size_t const index) { m_index = index; }
+
+	void run()
+	{
+		m_index = 0;
+		size_t lines = m_commands.size();
+
+		for (; m_index < lines; m_index++)
+		{
+			execute(m_commands.at(m_index));
+		}
+	}
+
+	void execute(Command const& command)
+	{
+		switch (command.get_token())
+		{
+		case CHISL_KEYWORD_SET:
+			m_scope.set(command.get_arg<std::string>(0), command.get_arg_value(2));
+			break;
+		case CHISL_KEYWORD_LOAD:
+		{
+			std::optional<Value> value = file_read(command.get_arg<std::string>(2));
+			if (value.has_value()) m_scope.set(command.get_arg<std::string>(0), value.value());
+			break;
+		}
+		case CHISL_KEYWORD_SAVE:
+		{
+			Value value = m_scope.get(command.get_arg<std::string>(0));
+			file_write(command.get_arg<std::string>(2), value);
+			break;
+		}
+		case CHISL_KEYWORD_DELETE:
+			m_scope.unset(command.get_arg<std::string>(0));
+			break;
+		case CHISL_KEYWORD_COPY:
+		{
+			Value value = m_scope.get(command.get_arg<std::string>(0));
+
+			// if image, copy differently
+			if (std::holds_alternative<Image>(value))
+			{
+				value = std::get<Image>(value).clone();
+			}
+
+			m_scope.set(command.get_arg<std::string>(2), value);
+			break;
+		}
+		case CHISL_KEYWORD_CAPTURE:
+		{
+			Image image = screenshot();
+			m_scope.set(command.get_arg<std::string>(0), image);
+			break;
+		}
+		case CHISL_KEYWORD_CAPTURE_AT:
+		{
+			Image image = screenshot();
+			image = crop(image,
+				command.get_arg<int>(2),
+				command.get_arg<int>(3),
+				command.get_arg<int>(4),
+				command.get_arg<int>(5));
+			m_scope.set(command.get_arg<std::string>(0), image);
+			break;
+		}
+		case CHISL_KEYWORD_CROP:
+		{
+			std::string name = command.get_arg<std::string>(0);
+			std::optional<Image> image = command.get_variable<Image>(0, m_scope);
+			if (!image.has_value()) break;
+
+			image = crop(image.value(),
+				command.get_arg<int>(2),
+				command.get_arg<int>(3),
+				command.get_arg<int>(4),
+				command.get_arg<int>(5));
+			m_scope.set(name, image.value());
+			break;
+		}
+		case CHISL_KEYWORD_FIND:
+		{
+			Image templateImage = command.get_variable<Image>(2, m_scope);
+			if (templateImage.get().empty())
+			{
+				command.fail("Find template image does not exist.");
+				break;
+			}
+
+			Image image = command.get_variable<Image>(4, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find image does not exist.");
+				break;
+			}
+
+			std::optional<Image> found = find(image, templateImage, DEFAULT_THRESHOLD);
+			if (!found.has_value()) break;
+
+			m_scope.set(command.get_arg<std::string>(0), found.value());
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_WITH:
+		{
+			Image templateImage = command.get_variable<Image>(2, m_scope);
+			if (templateImage.get().empty())
+			{
+				command.fail("Find template image does not exist.");
+				break;
+			}
+
+			Image image = command.get_variable<Image>(4, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find image does not exist.");
+				break;
+			}
+
+			double threshold = command.get_arg<double>(6);
+			std::optional<Image> found = find(image, templateImage, threshold);
+			if (!found.has_value()) break;
+
+			m_scope.set(command.get_arg<std::string>(0), found.value());
+
+			break;
+		}
+		case CHISL_KEYWORD_READ:
+			std::cout << "TODO: READ\n";
+			break;
+		case CHISL_KEYWORD_DRAW:
+		{
+			Image match = command.get_variable<Image>(0, m_scope);
+			if (match.get().empty())
+			{
+				command.fail("Draw match image does not exist.");
+				break;
+			}
+
+			Image image = command.get_variable<Image>(2, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Draw match image does not exist.");
+				break;
+			}
+
+			draw(image, match);
+			break;
+		}
+		case CHISL_KEYWORD_DRAW_RECT:
+			std::cout << "TODO: DRAW RECT\n";
+			break;
+		case CHISL_KEYWORD_WAIT:
+		{
+			int time = command.get_arg<int>(0);
+			std::string type = command.get_arg<std::string>(1);
+
+			if (type == "ms")
+			{
+				wait(time);
+			}
+			else if (type == "s")
+			{
+				wait(time * 1000);
+			}
+			else if (type == "m")
+			{
+				wait(time * 60000);
+			}
+			else if (type == "h")
+			{
+				wait(time * 3600000);
+			}
+			else
+			{
+				command.fail("Unknown wait type.");
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_PAUSE:
+			pause();
+			break;
+		case CHISL_KEYWORD_PRINT:
+		{
+			std::string arg = command.get_arg<std::string>(0);
+			if (arg.starts_with("\"") && arg.ends_with("\""))
+			{
+				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
+			}
+			else
+			{
+				Value value = m_scope.get(command.get_arg<std::string>(0));
+
+				print(value);
+			}
+			break;
+		}
+		case CHISL_KEYWORD_SHOW:
+			std::cout << "TODO SHOW\n";
+			break;
+		case CHISL_KEYWORD_MOUSE_SET:
+			mouse_set(command.get_arg<int>(1), command.get_arg<int>(2));
+			break;
+		case CHISL_KEYWORD_MOUSE_SET_MATCH:
+		{
+			Image image = command.get_variable<Image>(1, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Image does not exist.");
+				break;
+			}
+
+			cv::Point center = image.get_center();
+			mouse_set(center.x, center.y);
+			break;
+		}
+		case CHISL_KEYWORD_MOUSE_MOVE:
+			mouse_move(command.get_arg<int>(1), command.get_arg<int>(2));
+			break;
+		case CHISL_KEYWORD_MOUSE_PRESS:
+		{
+			std::string button = command.get_arg<std::string>(0);
+
+			if (button == "left")
+			{
+				mouse_down(MouseButton::Left);
+			}
+			else if (button == "right")
+			{
+				mouse_down(MouseButton::Right);
+			}
+			else if (button == "middle")
+			{
+				mouse_down(MouseButton::Middle);
+			}
+			else
+			{
+				command.fail("Unknown button type.");
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_MOUSE_RELEASE:
+		{
+			std::string button = command.get_arg<std::string>(0);
+
+			if (button == "left")
+			{
+				mouse_up(MouseButton::Left);
+			}
+			else if (button == "right")
+			{
+				mouse_up(MouseButton::Right);
+			}
+			else if (button == "middle")
+			{
+				mouse_up(MouseButton::Middle);
+			}
+			else
+			{
+				command.fail("Unknown button type.");
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_MOUSE_CLICK:
+		{
+			std::string button = command.get_arg<std::string>(0);
+
+			if (button == "left")
+			{
+				mouse_click(MouseButton::Left);
+			}
+			else if (button == "right")
+			{
+				mouse_click(MouseButton::Right);
+			}
+			else if (button == "middle")
+			{
+				mouse_click(MouseButton::Middle);
+			}
+			else
+			{
+				command.fail("Unknown button type.");
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
+		{
+			std::string button = command.get_arg<std::string>(0);
+
+			int times = command.get_arg<int>(1);
+
+			if (button == "left")
+			{
+				for (int i = 0; i < times; i++)
+				{
+					mouse_click(MouseButton::Left);
+				}
+			}
+			else if (button == "right")
+			{
+				for (int i = 0; i < times; i++)
+				{
+					mouse_click(MouseButton::Right);
+				}
+			}
+			else if (button == "middle")
+			{
+				for (int i = 0; i < times; i++)
+				{
+					mouse_click(MouseButton::Middle);
+				}
+			}
+			else
+			{
+				command.fail("Unknown button type.");
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_MOUSE_SCROLL:
+		{
+			mouse_scroll(command.get_arg<int>(0), command.get_arg<int>(1));
+			break;
+		}
+		case CHISL_KEYWORD_KEY_PRESS:
+		{
+			std::string strKey = command.get_arg<std::string>(0);
+			WORD key = string_to_key(strKey);
+			if (!key)
+			{
+				command.fail("Invalid key.");
+				break;
+			}
+
+			key_down(key);
+
+			break;
+		}
+		case CHISL_KEYWORD_KEY_RELEASE:
+		{
+			std::string strKey = command.get_arg<std::string>(0);
+			WORD key = string_to_key(strKey);
+			if (!key)
+			{
+				command.fail("Invalid key.");
+				break;
+			}
+
+			key_up(key);
+
+			break;
+		}
+		case CHISL_KEYWORD_KEY_TYPE:
+		{
+			std::string str = command.get_arg<std::string>(0);
+
+			// if in quotes, type as string
+			if (str.starts_with("\"") && str.ends_with("\""))
+			{
+				// type string
+				key_type_string(str, DEFAULT_TYPING_DELAY);
+			}
+			else
+			{
+				// type key
+				WORD key = string_to_key(str);
+				if (!key)
+				{
+					command.fail("Invalid key.");
+					break;
+				}
+
+				key_type(key);
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
+		{
+			std::string str = command.get_arg<std::string>(0);
+
+			int delay = command.get_arg<int>(2);
+
+			// if in quotes, type as string
+			if (str.starts_with("\"") && str.ends_with("\""))
+			{
+				// type string
+				key_type_string(str, delay);
+			}
+			else
+			{
+				// type key
+				WORD key = string_to_key(str);
+				if (!key)
+				{
+					command.fail("Invalid key.");
+					break;
+				}
+
+				key_type(key);
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_IF:
+		{
+			std::cout << "TODO IF";
+			break;
+		}
+		case CHISL_KEYWORD_ELSE_IF:
+		{
+			std::cout << "TODO ELSE IF";
+			break;
+		}
+		case CHISL_KEYWORD_ELSE:
+		{
+			std::cout << "TODO ELSE";
+			break;
+		}
+		case CHISL_KEYWORD_LABEL:
+		{
+			break;
+		}
+		case CHISL_KEYWORD_GOTO:
+		{
+			// set working index to label position
+			std::string label = command.get_arg<std::string>(0);
+			auto found = m_labels.find(label);
+			if (found == m_labels.end())
+			{
+				// label not found
+				std::cerr << "Label \"" << label << "\" not found.";
+			}
+			// move to LABEL statement, then next line will be what is after the label
+			m_index = found->second;
+			break;
+		}
+		default:
+			std::cerr << "Unable to execute \"" << string_token_type(command.get_token()) << "\".";
+			break;
+		}
+	}
 
 	bool validate() const
 	{
@@ -1886,17 +1894,6 @@ public:
 		for (auto& command : m_commands)
 		{
 			command.fix();
-		}
-	}
-
-	void run()
-	{
-		m_index = 0;
-		size_t lines = m_commands.size();
-
-		for (; m_index < lines; m_index++)
-		{
-			m_commands.at(m_index).execute(m_scope);
 		}
 	}
 };
