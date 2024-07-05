@@ -148,28 +148,13 @@ private:
 	/// </summary>
 	std::unordered_map<std::string, Value> m_variables;
 
-	/// <summary>
-	/// Holds values that cannot be updated by the script, but can be used by it.
-	/// </summary>
-	std::unordered_set<std::string> m_constants;
-
 public:
 	Scope() = default;
+	~Scope() = default;
 
-	void set_variable(std::string const& name, Value const value)
+	void set(std::string const& name, Value const value)
 	{
-		if (m_constants.contains(name))
-		{
-			return;
-		}
-
 		m_variables[name] = value;
-	}
-
-	void set_constant(std::string const& name, Value const value)
-	{
-		set_variable(name, value);
-		m_constants.emplace(name);
 	}
 
 	Value get(std::string const& name) const
@@ -855,7 +840,6 @@ void key_type_string(std::string const& text, DWORD const delay)
 	}
 }
 
-
 /// <summary>
 /// Holds data for an executable command.
 /// </summary>
@@ -1002,12 +986,12 @@ public:
 		switch (m_token)
 		{
 		case CHISL_KEYWORD_SET:
-			scope.set_variable(get_arg<std::string>(0), m_args.at(2).get_value());
+			scope.set(get_arg<std::string>(0), m_args.at(2).get_value());
 			break;
 		case CHISL_KEYWORD_LOAD:
 		{
 			std::optional<Value> value = file_read(get_arg<std::string>(2));
-			if (value.has_value()) scope.set_variable(get_arg<std::string>(0), value.value());
+			if (value.has_value()) scope.set(get_arg<std::string>(0), value.value());
 			break;
 		}
 		case CHISL_KEYWORD_SAVE:
@@ -1029,13 +1013,13 @@ public:
 				value = std::get<Image>(value).clone();
 			}
 
-			scope.set_variable(get_arg<std::string>(2), value);
+			scope.set(get_arg<std::string>(2), value);
 			break;
 		}
 		case CHISL_KEYWORD_CAPTURE:
 		{
 			Image image = screenshot();
-			scope.set_variable(get_arg<std::string>(0), image);
+			scope.set(get_arg<std::string>(0), image);
 			break;
 		}
 		case CHISL_KEYWORD_CAPTURE_AT:
@@ -1046,7 +1030,7 @@ public:
 				get_arg<int>(3),
 				get_arg<int>(4),
 				get_arg<int>(5));
-			scope.set_variable(get_arg<std::string>(0), image);
+			scope.set(get_arg<std::string>(0), image);
 			break;
 		}
 		case CHISL_KEYWORD_CROP:
@@ -1060,7 +1044,7 @@ public:
 				get_arg<int>(3),
 				get_arg<int>(4),
 				get_arg<int>(5));
-			scope.set_variable(name, image.value());
+			scope.set(name, image.value());
 			break;
 		}
 		case CHISL_KEYWORD_FIND:
@@ -1082,7 +1066,7 @@ public:
 			std::optional<Image> found = find(image, templateImage, DEFAULT_THRESHOLD);
 			if (!found.has_value()) break;
 
-			scope.set_variable(get_arg<std::string>(0), found.value());
+			scope.set(get_arg<std::string>(0), found.value());
 
 			break;
 		}
@@ -1106,7 +1090,7 @@ public:
 			std::optional<Image> found = find(image, templateImage, threshold);
 			if (!found.has_value()) break;
 
-			scope.set_variable(get_arg<std::string>(0), found.value());
+			scope.set(get_arg<std::string>(0), found.value());
 
 			break;
 		}
@@ -1651,6 +1635,60 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 	return commands;
 }
 
+/// <summary>
+/// Represents a program created from a script.
+/// </summary>
+class Program
+{
+private:
+	std::string m_path;
+	std::vector<Command> m_commands;
+	size_t m_index;
+	Scope m_scope;
+
+public:
+	Program(std::string const& path)
+		: m_path(path), m_commands(), m_index(), m_scope()
+	{
+		// convert to commands
+		std::optional<std::string> text = text_read(path);
+		if (!text.has_value()) return;
+		std::vector<Token> tokens = tokenize(text.value());
+		m_commands = commandize(tokens);
+	}
+	~Program() = default;
+
+	size_t get_index() const { return m_index; }
+	Scope& get_scope() { return m_scope; }
+	Scope const& get_scope() const { return m_scope; }
+	void set_index(size_t const index) { m_index = index; }
+
+	bool validate() const
+	{
+		bool valid = true;
+		for (auto const& command : m_commands)
+		{
+			if (!command.validate())
+			{
+				valid = false;
+			}
+		}
+
+		return valid;
+	}
+
+	void run()
+	{
+		m_index = 0;
+		size_t lines = m_commands.size();
+
+		for (; m_index < lines; m_index++)
+		{
+			m_commands.at(m_index).execute(m_scope);
+		}
+	}
+};
+
 int main(int argc, char* argv[])
 {
 	// expecting 2 args: program title and path to file being ran
@@ -1675,41 +1713,18 @@ int main(int argc, char* argv[])
 	// SETUP
 	cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
 
-	// convert to commands
-	std::optional<std::string> text = text_read(argv[1]);
-	if (!text.has_value())
-	{
-		std::cerr << "Failed to load text from inputted path.\n";
-		return 4;
-	}
-	std::vector<Token> tokens = tokenize(text.value());
-	std::vector<Command> commands = commandize(tokens);
+	Program program(argv[1]);
 
-	// ensure syntax is correct
-	bool valid = true;
-	for (auto const& command : commands)
-	{
-		if (!command.validate())
-		{
-			valid = false;
-		}
-	}
-
-	if (!valid)
+	// ensure the program is ok to run (syntax, etc.)
+	if (!program.validate())
 	{
 		// something went wrong
 		std::cerr << "Validation failed.\n";
-		return 5;
+		return false;
 	}
 
 	// run program
-	Scope scope = {};
-
-	size_t const count = commands.size();
-	for (size_t i = 0; i < count; i++)
-	{
-		commands.at(i).execute(scope);
-	}
+	program.run();
 
 	return 0;
 }
