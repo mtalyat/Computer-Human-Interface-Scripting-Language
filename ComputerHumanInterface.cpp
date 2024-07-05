@@ -100,6 +100,11 @@ WORD string_to_key(const std::string& keyString) {
 	}
 }
 
+bool check_for_key_input(WORD const key)
+{
+	return GetAsyncKeyState(key) & 0x8000;
+}
+
 int parse_int(const std::string& str) {
 	// Regular expression to match a valid integer
 	std::regex re(R"(^[-+]?\d+$)");
@@ -1442,7 +1447,7 @@ public:
 			execute(m_commands.at(m_index));
 
 			// check for cancelation using escape
-			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) // & 0x8000 checks if down (MSB = 1 when down)
+			if (check_for_key_input(VK_ESCAPE)) // & 0x8000 checks if down (MSB = 1 when down)
 			{
 				std::cout << "Program quit by user." << std::endl;
 				break;
