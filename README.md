@@ -42,10 +42,8 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `If <condition>:` | Runs the following code when `condition` is true. |
 | `Elif <condition>:` | Runs the following code when `condition` is true. |
 | `Else:` | Runs the following code when the previous condition was false. |
-| `Loop:` | Loops the following code forever. |
-| `Loop while <condition>:` |
-| `Break.` | Breaks out of a loop. |
-| `Continue.` | Returns to the beginning of the loop. |
+| `Label <label>:` | Creates a label that can be gone to with a goto statement. |
+| `Goto <label>.` | Starts executing at the given `label`. |
 
 ### Example
     Capture screen.
