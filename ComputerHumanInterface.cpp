@@ -105,14 +105,17 @@ bool check_for_key_input(WORD const key)
 	return GetAsyncKeyState(key) & 0x8000;
 }
 
-int parse_int(const std::string& str) {
-	// Regular expression to match a valid integer
+bool can_parse_int(const std::string& str)
+{
 	std::regex re(R"(^[-+]?\d+$)");
+	return std::regex_match(str, re);
+}
 
+int parse_int(const std::string& str) {
 	int result = 0;
 
 	// Check if the string matches the regex
-	if (std::regex_match(str, re))
+	if (can_parse_int(str))
 	{
 		try
 		{
@@ -130,14 +133,17 @@ int parse_int(const std::string& str) {
 	return result;
 }
 
-double parse_double(const std::string& str) {
-	// Regular expression to match a valid integer
+bool can_parse_double(const std::string& str)
+{
 	std::regex re(R"(^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$)");
+	return std::regex_match(str, re);
+}
 
+double parse_double(const std::string& str) {
 	double result = 0;
 
 	// Check if the string matches the regex
-	if (std::regex_match(str, re))
+	if (can_parse_double(str))
 	{
 		try
 		{
@@ -177,6 +183,7 @@ public:
 
 	cv::Mat& get() { return m_image; }
 	cv::Mat const& get() const { return m_image; }
+	bool empty() const { return m_image.empty(); }
 	cv::Point get_point() const { return m_point; }
 	int get_width() const { return m_image.cols; }
 	int get_height() const { return m_image.rows; }
@@ -197,6 +204,29 @@ public:
 };
 
 using Value = std::variant<nullptr_t, Image, std::string, int, double>;
+
+double value_to_number(Value const& value)
+{
+	if (std::holds_alternative<std::string>(value))
+	{
+		return parse_double(std::get<std::string>(value));
+	}
+	else if (std::holds_alternative<Image>(value))
+	{
+		return static_cast<double>(!std::get<Image>(value).empty());
+	}
+	else if (std::holds_alternative<int>(value))
+	{
+		return static_cast<double>(std::get<int>(value));
+	}
+	else if (std::holds_alternative<double>(value))
+	{
+		return std::get<double>(value);
+	}
+
+	// unable to convert type
+	return 0.0;
+}
 
 /// <summary>
 /// Holds values within the scope of the script being ran.
@@ -258,8 +288,8 @@ enum ChislToken
 	CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO = 10100, // >=
 	CHISL_PUNCT_LESS_THAN = 10110, // <
 	CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO = 10120, // <=
-	CHISL_PUNCT_EQUAL_TO = 10130, // <=
-	CHISL_PUNCT_NOT_EQUAL_TO = 10140, // <=
+	CHISL_PUNCT_EQUAL_TO = 10130, // ==
+	CHISL_PUNCT_NOT_EQUAL_TO = 10140, // !=
 	CHISL_PUNCT_OPEN_SCOPE = 10150, // :
 	CHISL_PUNCT_CLOSE_SCOPE = 10160, // ;
 	CHISL_PUNCT_END_OF_LINE = 10170, // \n
@@ -307,14 +337,39 @@ enum ChislToken
 	CHISL_KEYWORD_KEY_TYPE_WITH_DELAY = 24021, // type <value> with <delay> delay
 
 	//	Control
-	CHISL_KEYWORD_IF = 25000, // if <condition>
-	CHISL_KEYWORD_ELSE_IF = 25010, // elif <condition>
-	CHISL_KEYWORD_ELSE = 25020, // else
-	CHISL_KEYWORD_LABEL = 25030, // label <label>:
-	CHISL_KEYWORD_GOTO = 25040, // goto <label>
+	CHISL_KEYWORD_LABEL = 25000, // label <label>:
+	CHISL_KEYWORD_GOTO = 25010, // goto <label>
+	CHISL_KEYWORD_GOTO_IF = 25011, // goto <label> if <condition>
 
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_GOTO,
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_GOTO_IF,
 };
+
+/// <summary>
+/// Gets the precedence for the token, or 0 if no precedence.
+/// </summary>
+/// <param name="token"></param>
+/// <returns></returns>
+int token_get_precedence(ChislToken const token)
+{
+	switch (token)
+	{
+	case CHISL_PUNCT_ADD:
+	case CHISL_PUNCT_SUBTRACT:
+		return 1;
+	case CHISL_PUNCT_MULTIPLY:
+	case CHISL_PUNCT_DIVIDE:
+		return 2;
+	case CHISL_PUNCT_GREATER_THAN:
+	case CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO:
+	case CHISL_PUNCT_LESS_THAN:
+	case CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO:
+	case CHISL_PUNCT_EQUAL_TO:
+	case CHISL_PUNCT_NOT_EQUAL_TO:
+		return 3;
+	default:
+		return 0;
+	}
+}
 
 ChislToken parse_token_type(std::string const& str)
 {
@@ -366,10 +421,7 @@ ChislToken parse_token_type(std::string const& str)
 		{ "press key", CHISL_KEYWORD_KEY_PRESS },
 		{ "release key", CHISL_KEYWORD_KEY_RELEASE },
 		{ "type", CHISL_KEYWORD_KEY_TYPE },
-
-		{ "if", CHISL_KEYWORD_IF },
-		{ "elif", CHISL_KEYWORD_ELSE_IF },
-		{ "else", CHISL_KEYWORD_ELSE },
+		
 		{ "label", CHISL_KEYWORD_LABEL },
 		{ "goto", CHISL_KEYWORD_GOTO }
 	};
@@ -441,11 +493,9 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_KEY_TYPE, "type" },
 		{ CHISL_KEYWORD_KEY_TYPE_WITH_DELAY, "type with delay" },
 
-		{ CHISL_KEYWORD_IF, "if" },
-		{ CHISL_KEYWORD_ELSE_IF, "elif" },
-		{ CHISL_KEYWORD_ELSE, "else" },
 		{ CHISL_KEYWORD_LABEL, "label" },
 		{ CHISL_KEYWORD_GOTO, "goto" },
+		{ CHISL_KEYWORD_GOTO_IF, "goto if" },
 	};
 
 	auto found = tokenStrings.find(token);
@@ -485,6 +535,8 @@ public:
 
 		return T();
 	}
+	template<typename T>
+	bool is() const { return std::holds_alternative<T>(m_value); }
 
 	static Token parse_token(std::string const& str)
 	{
@@ -956,10 +1008,23 @@ public:
 		case CHISL_KEYWORD_KEY_TYPE:
 			fix_token(CHISL_KEYWORD_KEY_TYPE_WITH_DELAY, 1, "with");
 			break;
+		case CHISL_KEYWORD_GOTO:
+			fix_token(CHISL_KEYWORD_GOTO_IF, 1, "if");
+			break;
 		}
 	}
 
 	ChislToken get_token() const { return m_token; }
+	std::vector<Token> const& get_args() const { return m_args; }
+	size_t get_arg_count() const { return m_args.size(); }
+	std::vector<Token> get_args(size_t const start) const
+	{
+		return std::vector<Token>(m_args.begin() + start, m_args.end());
+	}
+	std::vector<Token> get_args(size_t const start, size_t const end) const
+	{
+		return std::vector<Token>(m_args.begin() + start, m_args.begin() + end);
+	}
 
 	Value get_arg_value(size_t const index) const { return m_args.at(index).get_value(); }
 
@@ -1046,16 +1111,12 @@ public:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
 			return verify_args_size(4) && verify_keyword(1, "with") && verify_keyword(3, "delay");
-		case CHISL_KEYWORD_IF:
-			return verify_args_size(1, false);
-		case CHISL_KEYWORD_ELSE_IF:
-			return verify_args_size(1, false);
-		case CHISL_KEYWORD_ELSE:
-			return verify_args_size(0);
 		case CHISL_KEYWORD_LABEL:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_GOTO:
 			return verify_args_size(1);
+		case CHISL_KEYWORD_GOTO_IF:
+			return verify_args_size(3, false) && verify_keyword(1, "if");
 		default:
 			std::cerr << "Unable to verify \"" << string_token_type(m_token) << "\".";
 			return false;
@@ -1146,15 +1207,11 @@ public:
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
 			change_arg_to_double(2);
 			break;
-		case CHISL_KEYWORD_IF:
-			break;
-		case CHISL_KEYWORD_ELSE_IF:
-			break;
-		case CHISL_KEYWORD_ELSE:
-			break;
 		case CHISL_KEYWORD_LABEL:
 			break;
 		case CHISL_KEYWORD_GOTO:
+			break;
+		case CHISL_KEYWORD_GOTO_IF:
 			break;
 		}
 	}
@@ -1280,7 +1337,7 @@ private:
 std::vector<Token> tokenize(std::string const& str)
 {
 	// split into string tokens
-	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\,\\*\\-;:#\\(\\)]|\\n");
+	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[!=]=|[\\.\\,\\+\\-\\*\\/;:#\\(\\)]|\\n");
 	std::vector<std::string> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -1299,6 +1356,88 @@ std::vector<Token> tokenize(std::string const& str)
 	}
 
 	return tokens;
+}
+
+/// <summary>
+/// Performs the shunting yard algorithm on the given tokens.
+/// </summary>
+/// <param name="tokens"></param>
+/// <returns></returns>
+std::vector<Token> shunting_yard(std::vector<Token> const& tokens)
+{
+	std::vector<Token> output;
+	std::vector<Token> operators;
+
+	for (auto const& token : tokens)
+	{
+		ChislToken chislToken = token.get_token();
+
+		if (chislToken == CHISL_GENERIC)
+		{
+			output.push_back(token);
+			continue;
+		}
+
+		int precedence = token_get_precedence(token.get_token());
+
+		if (precedence)
+		{
+			while (!operators.empty())
+			{
+				Token const& other = operators.back();
+				if (other.get_token() == CHISL_PUNCT_OPEN_GROUP)
+				{
+					break;
+				}
+
+				int otherPrecedence = token_get_precedence(other.get_token());
+
+				if (otherPrecedence < precedence && (otherPrecedence != precedence))
+				{
+					break;
+				}
+
+				output.push_back(other);
+				operators.pop_back();
+			}
+
+			operators.push_back(token);
+		}
+		else if (chislToken == CHISL_PUNCT_OPEN_GROUP)
+		{
+			operators.push_back(token);
+		}
+		else if (chislToken == CHISL_PUNCT_CLOSE_GROUP)
+		{
+			while (!operators.empty() && operators.back().get_token() != CHISL_PUNCT_OPEN_GROUP)
+			{
+				output.push_back(operators.back());
+				operators.pop_back();
+			}
+
+			if (operators.empty())
+			{
+				std::cerr << "Mismatch parenthesis." << std::endl;
+			}
+			else
+			{
+				operators.pop_back();
+			}
+		}
+	}
+
+	while (!operators.empty())
+	{
+		if (operators.back().get_token() == CHISL_PUNCT_OPEN_GROUP)
+		{
+			std::cerr << "Mismatch parenthesis." << std::endl;
+			continue;
+		}
+		output.push_back(operators.back());
+		operators.pop_back();
+	}
+
+	return output;
 }
 
 /// <summary>
@@ -1385,7 +1524,8 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 		if (state == STATE_DONE)
 		{
 			// compile values into a Command
-			Command command(current, values);
+			std::vector<Token> postfixValues = shunting_yard(values);
+			Command command(current, postfixValues);
 			commands.push_back(command);
 			values.clear();
 
@@ -1455,13 +1595,126 @@ public:
 		}
 	}
 
+	Value evaluate(std::vector<Token> const& tokens)
+	{
+		if (tokens.empty()) return nullptr;
+		if (tokens.size() == 1) return value_to_number(tokens.front().get_value());
+
+		// assume in postfix notation
+		std::vector<double> operands;
+
+		for (auto const& token : tokens)
+		{
+			int precedence = token_get_precedence(token.get_token());
+
+			if (precedence)
+			{
+				// operator
+				// all operators are left precedence and 1 args as of right now, and use doubles
+				double right = operands.back();
+				operands.pop_back();
+				double left = operands.back();
+				operands.pop_back();
+
+				switch (token.get_token())
+				{
+				case CHISL_PUNCT_ADD:
+					operands.push_back(left + right);
+					break;
+				case CHISL_PUNCT_SUBTRACT:
+					operands.push_back(left - right);
+					break;
+				case CHISL_PUNCT_MULTIPLY:
+					operands.push_back(left * right);
+					break;
+				case CHISL_PUNCT_DIVIDE:
+					if (right != 0.0)
+					{
+						operands.push_back(left / right);
+					}
+					else
+					{
+						std::cerr << "Attempting to divide by zero." << std::endl;
+						operands.push_back(0.0);
+					}
+					break;
+				case CHISL_PUNCT_GREATER_THAN:
+					operands.push_back(left > right);
+					break;
+				case CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO:
+					operands.push_back(left >= right);
+					break;
+				case CHISL_PUNCT_LESS_THAN:
+					operands.push_back(left < right);
+					break;
+				case CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO:
+					operands.push_back(left <= right);
+					break;
+				case CHISL_PUNCT_EQUAL_TO:
+					operands.push_back(left == right);
+					break;
+				case CHISL_PUNCT_NOT_EQUAL_TO:
+					operands.push_back(left != right);
+					break;
+				}
+			}
+			else
+			{
+				// operand
+
+				// convert to number somehow
+				if (token.is<Image>())
+				{
+					operands.push_back(!token.get<Image>().empty());
+				}
+				else if (token.is<std::string>())
+				{
+					// if can parse, parse. Otherwise get variable
+					std::string str = token.get<std::string>();
+					if (can_parse_double(str))
+					{
+						operands.push_back(parse_double(str));
+					}
+					else
+					{
+						Value variableValue = m_scope.get(str);
+
+						// same deal, but no more variables
+						operands.push_back(value_to_number(variableValue));
+					}
+				}
+				else if (token.is<int>())
+				{
+					operands.push_back(token.get<int>());
+				}
+				else if (token.is<double>())
+				{
+					operands.push_back(token.get<double>());
+				}
+			}
+		}
+
+		if (operands.size() != 1)
+		{
+			std::cerr << "Failed to evaluate.";
+			
+			return 0.0;
+		}
+
+		return operands.front();
+	}
+
 	void execute(Command const& command)
 	{
 		switch (command.get_token())
 		{
 		case CHISL_KEYWORD_SET:
-			m_scope.set(command.get_arg<std::string>(0), command.get_arg_value(2));
+		{
+			// evaluate the arguments
+			Value value = evaluate(command.get_args(2));
+			m_scope.set(command.get_arg<std::string>(0), value);
 			break;
+		}
 		case CHISL_KEYWORD_LOAD:
 		{
 			std::optional<Value> value = file_read(command.get_arg<std::string>(2));
@@ -1849,21 +2102,6 @@ public:
 
 			break;
 		}
-		case CHISL_KEYWORD_IF:
-		{
-			std::cout << "TODO IF";
-			break;
-		}
-		case CHISL_KEYWORD_ELSE_IF:
-		{
-			std::cout << "TODO ELSE IF";
-			break;
-		}
-		case CHISL_KEYWORD_ELSE:
-		{
-			std::cout << "TODO ELSE";
-			break;
-		}
 		case CHISL_KEYWORD_LABEL:
 		{
 			break;
@@ -1872,14 +2110,24 @@ public:
 		{
 			// set working index to label position
 			std::string label = command.get_arg<std::string>(0);
-			auto found = m_labels.find(label);
-			if (found == m_labels.end())
+			goto_label(label);
+			break;
+		}
+		case CHISL_KEYWORD_GOTO_IF:
+		{
+			// check condition
+			Value value = evaluate(command.get_args(2));
+
+			if (std::holds_alternative<double>(value))
 			{
-				// label not found
-				std::cerr << "Label \"" << label << "\" not found.";
+				if (std::get<double>(value))
+				{
+					// set working index to label position
+					std::string label = command.get_arg<std::string>(0);
+					goto_label(label);
+				}
 			}
-			// move to LABEL statement, then next line will be what is after the label
-			m_index = found->second;
+
 			break;
 		}
 		default:
@@ -1909,6 +2157,19 @@ public:
 			command.fix();
 		}
 	}
+
+	private:
+		void goto_label(std::string const& label)
+		{
+			auto found = m_labels.find(label);
+			if (found == m_labels.end())
+			{
+				// label not found
+				std::cerr << "Label \"" << label << "\" not found.";
+			}
+			// move to LABEL statement, then next line will be what is after the label
+			m_index = found->second;
+		}
 };
 
 int main(int argc, char* argv[])
