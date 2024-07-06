@@ -44,8 +44,12 @@ WORD string_to_key(const std::string& keyString) {
 	static const std::unordered_map<std::string, WORD> keyMap = {
 		{"escape", VK_ESCAPE},
 		{"space", VK_SPACE},
+		{" ", VK_SPACE},
 		{"enter", VK_RETURN},
+		{"return", VK_RETURN},
+		{"\n", VK_RETURN},
 		{"tab", VK_TAB},
+		{"\t", VK_TAB},
 		{"shift", VK_SHIFT},
 		{"ctrl", VK_CONTROL},
 		{"alt", VK_MENU},
@@ -53,6 +57,9 @@ WORD string_to_key(const std::string& keyString) {
 		{"up", VK_UP},
 		{"right", VK_RIGHT},
 		{"down", VK_DOWN},
+		{"backspace", VK_BACK},
+		{"back", VK_BACK},
+		{"\b", VK_BACK},
 		{"a", 'A'},
 		{"b", 'B'},
 		{"c", 'C'},
@@ -1039,24 +1046,62 @@ void key_up(WORD const key)
 	SendInput(1, inputs, sizeof(INPUT));
 }
 
-void key_type(WORD const key)
+void key_type(WORD const key, bool shift = false) {
+	INPUT inputs[4] = {};
+
+	if (shift) {
+		// press shift key
+		inputs[0].type = INPUT_KEYBOARD;
+		inputs[0].ki.wVk = VK_SHIFT;
+
+		// press the key
+		inputs[1].type = INPUT_KEYBOARD;
+		inputs[1].ki.wVk = key;
+
+		// release the key
+		inputs[2].type = INPUT_KEYBOARD;
+		inputs[2].ki.wVk = key;
+		inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
+
+		// release shift key
+		inputs[3].type = INPUT_KEYBOARD;
+		inputs[3].ki.wVk = VK_SHIFT;
+		inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
+
+		SendInput(4, inputs, sizeof(INPUT));
+	}
+	else {
+		// press the key
+		inputs[0].type = INPUT_KEYBOARD;
+		inputs[0].ki.wVk = key;
+
+		// release the key
+		inputs[1].type = INPUT_KEYBOARD;
+		inputs[1].ki.wVk = key;
+		inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+		SendInput(2, inputs, sizeof(INPUT));
+	}
+}
+
+void key_type_char(char const c)
 {
-	INPUT inputs[2] = {};
+	SHORT vk = VkKeyScan(c);
+	if (vk == -1) {
+		std::cerr << "Cannot map character: " << c << std::endl;
+		return;
+	}
 
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wVk = key;
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wVk = key;
-	inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
-
-	SendInput(1, inputs, sizeof(INPUT));
+	bool shift = (vk & 0x0100) != 0;
+	WORD vkCode = vk & 0xFF;
+	key_type(vkCode, shift);
 }
 
 void key_type_string(std::string const& text, DWORD const delay)
 {
 	for (char c : text)
 	{
-		key_type(c);
+		key_type_char(c);
 		wait(delay);
 	}
 }
@@ -2246,7 +2291,7 @@ public:
 			if (str.starts_with("\"") && str.ends_with("\""))
 			{
 				// type string
-				key_type_string(str, DEFAULT_TYPING_DELAY);
+				key_type_string(str.substr(1, str.length() - 2), DEFAULT_TYPING_DELAY);
 			}
 			else
 			{
