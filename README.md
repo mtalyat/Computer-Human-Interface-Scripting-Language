@@ -55,3 +55,6 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
     Print "Found it!".
     Set mouse to match.
     Click mouse left.
+
+## Technologies
+C++, OpenCV, and Tesseract OCR.
