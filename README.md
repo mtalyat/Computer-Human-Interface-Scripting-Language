@@ -43,7 +43,7 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Type <value> with <delay> delay.` | Sends a series of key up/downs of the phrase or variable to the OS. `delay` is the wait time between each character. |
 | `Label <label>.` | Creates a label that can be gone to with a goto statement. |
 | `Goto <label>.` | Starts executing at the given `label`. |
-| `Goto <label> if <condition>. | Goes to the label only if the `condition` is true. |
+| `Goto <label> if <condition>.` | Goes to the label only if the `condition` is true. |
 
 ### Example
     Capture screen.
