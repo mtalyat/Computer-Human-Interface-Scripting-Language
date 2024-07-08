@@ -1069,6 +1069,18 @@ void print(Value const& value)
 	}
 }
 
+void show(Value const& value)
+{
+	if (std::holds_alternative<Image>(value))
+	{
+		cv::imshow("Image", std::get<Image>(value).get());
+	}
+	else
+	{
+		print(value);
+	}
+}
+
 void wait(DWORD const ms)
 {
 	Sleep(ms);
@@ -2477,8 +2489,20 @@ public:
 			break;
 		}
 		case CHISL_KEYWORD_SHOW:
-			std::cout << "TODO SHOW\n";
+		{
+			std::string arg = command.get_arg<std::string>(0);
+			if (arg.starts_with("\"") && arg.ends_with("\""))
+			{
+				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
+			}
+			else
+			{
+				Value value = m_scope.get(command.get_arg<std::string>(0));
+
+				show(value);
+			}
 			break;
+		}
 		case CHISL_KEYWORD_MOUSE_SET:
 			mouse_set(command.get_arg<int>(1), command.get_arg<int>(2));
 			break;
