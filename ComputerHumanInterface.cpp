@@ -10,12 +10,14 @@
 #include <filesystem>
 #include <regex>
 #include <fstream>
+#include <tesseract/baseapi.h>
+#include <leptonica/allheaders.h>
 
 typedef std::string CHISL_STRING;
 typedef double CHISL_FLOAT;
 typedef long CHISL_INT;
 
-constexpr double DEFAULT_THRESHOLD = 0.8f;
+constexpr double DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
 
 std::string string_to_lower(std::string str)
@@ -230,19 +232,26 @@ public:
 class MatchCollection
 {
 private:
-	cv::Point m_size;
-	std::vector<cv::Point> m_points;
+	std::vector<Match> m_matches;
 
 public:
 	MatchCollection() = default;
 	MatchCollection(cv::Point const size, std::vector<cv::Point> const& points)
-		: m_size(size), m_points(points) {}
+		: m_matches()
+	{
+		m_matches.reserve(points.size());
 
-	cv::Point get_size() const { return m_size; }
-	size_t count() const { return m_points.size(); }
-	cv::Point get_point(size_t const index) const { return m_points.at(index); }
-	Match get(size_t const index) const { return Match(m_size, m_points.at(index)); }
-	bool empty() const { return m_points.empty(); }
+		for (auto const& point : points)
+		{
+			m_matches.push_back(Match(size, point));
+		}
+	}
+	MatchCollection(std::vector<Match> const& matches)
+		: m_matches(matches) { }
+
+	size_t count() const { return m_matches.size(); }
+	Match get(size_t const index) const { return m_matches.at(index); }
+	bool empty() const { return m_matches.empty(); }
 };
 
 using Value = std::variant<nullptr_t, Image, Match, MatchCollection, std::string, int, double>;
@@ -357,10 +366,14 @@ enum ChislToken
 	CHISL_KEYWORD_CAPTURE = 21000, // capture <name>
 	CHISL_KEYWORD_CAPTURE_AT = 21001, // capture <name> at <x> <y> <w> <h>
 	CHISL_KEYWORD_CROP = 21010, // crop <name> to <x> <y> <w> <h>
-	CHISL_KEYWORD_FIND = 21020, // find <name> by <template> in <image>
-	CHISL_KEYWORD_FIND_WITH = 21021, // find <name> by <template> in <image> with <threshold>
+	CHISL_KEYWORD_FIND = 21020, // find <name> by <value> in <image>
+	CHISL_KEYWORD_FIND_WITH = 21021, // find <name> by <value> in <image> with <threshold>
 	CHISL_KEYWORD_FIND_ALL = 21022, // find all <name> by <template> in <image>
 	CHISL_KEYWORD_FIND_ALL_WITH = 21023, // find all <name> by <template> in <image> with <threshold>
+	CHISL_KEYWORD_FIND_TEXT = 21024, // find text <block/paragraph/symbol/line/word> <name> by <template> in <image>
+	CHISL_KEYWORD_FIND_TEXT_WITH = 21025, // find text <block/paragraph/symbol/line/word> <name> by <template> in <image> with <threshold>
+	CHISL_KEYWORD_FIND_ALL_TEXT = 21026, // find all text <block/paragraph/symbol/line/word> <name> by <template> in <image>
+	CHISL_KEYWORD_FIND_ALL_TEXT_WITH = 21027, // find all text <block/paragraph/symbol/line/word> <name> by <template> in <image> with <threshold>
 	CHISL_KEYWORD_READ = 21030, // read <name> from <image>
 	CHISL_KEYWORD_DRAW = 21040, // draw <match> on <image>
 	CHISL_KEYWORD_DRAW_RECT = 21041, // draw <x> <y> <w> <h> on <image>
@@ -454,6 +467,8 @@ ChislToken parse_token_type(std::string const& str)
 		{ "crop", CHISL_KEYWORD_CROP },
 		{ "find", CHISL_KEYWORD_FIND },
 		{ "find all", CHISL_KEYWORD_FIND_ALL },
+		{ "find text", CHISL_KEYWORD_FIND_TEXT },
+		{ "find all text", CHISL_KEYWORD_FIND_ALL_TEXT },
 		{ "read", CHISL_KEYWORD_READ },
 		{ "draw", CHISL_KEYWORD_DRAW },
 
@@ -522,6 +537,10 @@ std::string string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_FIND_WITH, "find with" },
 		{ CHISL_KEYWORD_FIND_ALL, "find all" },
 		{ CHISL_KEYWORD_FIND_ALL_WITH, "find all with" },
+		{ CHISL_KEYWORD_FIND_TEXT, "find text" },
+		{ CHISL_KEYWORD_FIND_TEXT_WITH, "find text with" },
+		{ CHISL_KEYWORD_FIND_ALL_TEXT, "find all text" },
+		{ CHISL_KEYWORD_FIND_ALL_TEXT_WITH, "find all text with" },
 		{ CHISL_KEYWORD_READ, "read" },
 		{ CHISL_KEYWORD_DRAW, "draw" },
 		{ CHISL_KEYWORD_DRAW_RECT, "draw rect" },
@@ -782,6 +801,26 @@ Image crop(Image& image, int const x, int const y, int const w, int const h)
 	return Image(image.get()(rect));
 }
 
+Image adjust_image_for_reading(Image& image)
+{
+	cv::Mat gray, binary, dilated;
+
+	// grayscale
+	cv::cvtColor(image.get(), gray, cv::COLOR_BGR2GRAY);
+
+	//// adaptive thresholding
+	//cv::adaptiveThreshold(gray, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
+
+	//// create a structuring element (kernel) for dilation
+	//int dilation_size = 1; // Adjust this size if needed
+	//cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1));
+
+	//// dilation
+	//cv::dilate(binary, dilated, kernel);
+
+	return Image(gray);
+}
+
 std::optional<Match> find(Image& image, Image& templateImage, double const threshold)
 {
 	try {
@@ -809,6 +848,58 @@ std::optional<Match> find(Image& image, Image& templateImage, double const thres
 	}
 	catch (...) {
 		std::cerr << "Unknown exception occurred." << std::endl;
+		return std::nullopt;
+	}
+}
+
+std::optional<Match> find_text(Image& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+{
+	Image srcImage = adjust_image_for_reading(image);
+	cv::Mat src = srcImage.get();
+
+	tesseract::TessBaseAPI ocr;
+	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+		std::cerr << "Could not initialize tesseract.\n";
+		return std::nullopt;
+	}
+
+	// process text from image
+	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
+
+	// get bounding boxes for text
+	ocr.Recognize(nullptr);
+	tesseract::ResultIterator* ri = ocr.GetIterator();
+
+	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+
+	if (ri != 0) {
+		do {
+			const char* word = ri->GetUTF8Text(level);
+			float conf = ri->Confidence(level);
+			if (word != 0 && conf > 100.0 * threshold) {
+				int x1, y1, x2, y2;
+				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
+				std::string extractedWord(word);
+				if (extractedWord == text) {
+					targetX = x1;
+					targetY = y1;
+					targetWidth = x2 - x1;
+					targetHeight = y2 - y1;
+					break;
+				}
+			}
+			delete[] word;
+		} while (ri->Next(level));
+	}
+
+	ocr.End();
+
+	if (targetX != -1 && targetY != -1)
+	{
+		return Match(cv::Point(targetWidth, targetHeight), cv::Point(targetX, targetY));
+	}
+	else
+	{
 		return std::nullopt;
 	}
 }
@@ -848,6 +939,84 @@ std::optional<MatchCollection> find_all(Image& image, Image& templateImage, doub
 		std::cerr << "Unknown exception occurred." << std::endl;
 		return std::nullopt;
 	}
+}
+
+std::optional<MatchCollection> find_all_text(Image& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+{
+	Image srcImage = adjust_image_for_reading(image);
+	cv::Mat src = srcImage.get();
+
+	tesseract::TessBaseAPI ocr;
+	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+		std::cerr << "Could not initialize tesseract.\n";
+		return std::nullopt;
+	}
+
+	// process text from image
+	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
+
+	// get bounding boxes for text
+	ocr.Recognize(nullptr);
+	tesseract::ResultIterator* ri = ocr.GetIterator();
+
+	std::vector<Match> matches;
+
+	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+
+	if (ri != 0) {
+		do {
+			const char* word = ri->GetUTF8Text(level);
+			float conf = ri->Confidence(level);
+			if (word != 0 && conf > 100.0 * threshold) {
+				int x1, y1, x2, y2;
+				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
+				std::string extractedWord(word);
+				if (extractedWord == text) {
+					targetX = x1;
+					targetY = y1;
+					targetWidth = x2 - x1;
+					targetHeight = y2 - y1;
+					matches.push_back(Match(cv::Point(targetWidth, targetHeight), cv::Point(targetX, targetY)));
+					break;
+				}
+			}
+			delete[] word;
+		} while (ri->Next(level));
+	}
+
+	ocr.End();
+
+	if (!matches.empty())
+	{
+		return MatchCollection(matches);
+	}
+	else
+	{
+		return std::nullopt;
+	}
+}
+
+std::string read_from_image(Image const& image)
+{
+	cv::Mat gray, src;
+	cv::cvtColor(image.get(), gray, cv::COLOR_BGR2GRAY);
+	cv::threshold(gray, src, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+
+	tesseract::TessBaseAPI ocr;
+	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+		std::cerr << "Could not initialize tesseract.\n";
+		return "";
+	}
+
+	// process text from image
+	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
+	char* outText = ocr.GetUTF8Text();
+	std::string outString = outText;
+	delete[] outText;
+
+	ocr.End();
+
+	return outString;
 }
 
 void draw(Image& image, Match const& match, cv::Scalar const color = cv::Scalar(0, 0, 255), int width = 2)
@@ -1126,8 +1295,18 @@ public:
 			fix_token(CHISL_KEYWORD_CAPTURE_AT, 1, "at");
 			break;
 		case CHISL_KEYWORD_FIND:
+			if (fix_token(CHISL_KEYWORD_FIND_TEXT, 0, "text"))
+			{
+				fix_token(CHISL_KEYWORD_FIND_TEXT_WITH, 7, "with");
+				break;
+			}
 			if (fix_token(CHISL_KEYWORD_FIND_ALL, 0, "all"))
 			{
+				if (fix_token(CHISL_KEYWORD_FIND_ALL_TEXT, 1, "text"))
+				{
+					fix_token(CHISL_KEYWORD_FIND_ALL_TEXT_WITH, 8, "with");
+					break;
+				}
 				fix_token(CHISL_KEYWORD_FIND_ALL_WITH, 6, "with");
 				break;
 			}
@@ -1186,6 +1365,25 @@ public:
 		return std::get<T>(value);
 	}
 
+	std::string get_text(size_t const index, Scope const& scope) const
+	{
+		std::string text = get_arg<std::string>(index);
+		if (text.starts_with("\"") && text.ends_with("\""))
+		{
+			return text.substr(1, text.length() - 2);
+		}
+		else
+		{
+			Value value = scope.get(text);
+			if (std::holds_alternative<std::string>(value))
+			{
+				return std::get<std::string>(value);
+			}
+		}
+
+		return "";
+	}
+
 	bool validate() const
 	{
 		switch (m_token)
@@ -1218,6 +1416,14 @@ public:
 			return verify_args_size(6) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in");
 		case CHISL_KEYWORD_FIND_ALL_WITH:
 			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in") && verify_keyword(6, "with");
+		case CHISL_KEYWORD_FIND_TEXT:
+			return verify_args_size(7) && verify_keyword(0, "text") && verify_keyword(3, "by") && verify_keyword(5, "in");
+		case CHISL_KEYWORD_FIND_TEXT_WITH:
+			return verify_args_size(9) && verify_keyword(0, "text") && verify_keyword(3, "by") && verify_keyword(5, "in") && verify_keyword(7, "with");
+		case CHISL_KEYWORD_FIND_ALL_TEXT:
+			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(4, "by") && verify_keyword(6, "in");
+		case CHISL_KEYWORD_FIND_ALL_TEXT_WITH:
+			return verify_args_size(10) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(4, "by") && verify_keyword(6, "in") && verify_keyword(8, "with");
 		case CHISL_KEYWORD_READ:
 			return verify_args_size(3) && verify_keyword(1, "from");
 		case CHISL_KEYWORD_DRAW:
@@ -1272,22 +1478,6 @@ public:
 	{
 		switch (m_token)
 		{
-		case CHISL_KEYWORD_SET:
-			break;
-		case CHISL_KEYWORD_LOAD:
-			break;
-		case CHISL_KEYWORD_SAVE:
-			break;
-		case CHISL_KEYWORD_DELETE:
-			break;
-		case CHISL_KEYWORD_COPY:
-			break;
-		case CHISL_KEYWORD_GET:
-			break;
-		case CHISL_KEYWORD_COUNT:
-			break;
-		case CHISL_KEYWORD_CAPTURE:
-			break;
 		case CHISL_KEYWORD_CAPTURE_AT:
 			change_arg_to_int(2);
 			change_arg_to_int(3);
@@ -1300,19 +1490,17 @@ public:
 			change_arg_to_int(4);
 			change_arg_to_int(5);
 			break;
-		case CHISL_KEYWORD_FIND:
-			break;
 		case CHISL_KEYWORD_FIND_WITH:
 			change_arg_to_double(6);
-			break;
-		case CHISL_KEYWORD_FIND_ALL:
 			break;
 		case CHISL_KEYWORD_FIND_ALL_WITH:
 			change_arg_to_double(7);
 			break;
-		case CHISL_KEYWORD_READ:
+		case CHISL_KEYWORD_FIND_TEXT_WITH:
+			change_arg_to_double(8);
 			break;
-		case CHISL_KEYWORD_DRAW:
+		case CHISL_KEYWORD_FIND_ALL_TEXT_WITH:
+			change_arg_to_double(9);
 			break;
 		case CHISL_KEYWORD_DRAW_RECT:
 			change_arg_to_int(0);
@@ -1323,27 +1511,13 @@ public:
 		case CHISL_KEYWORD_WAIT:
 			change_arg_to_int(0);
 			break;
-		case CHISL_KEYWORD_PAUSE:
-			break;
-		case CHISL_KEYWORD_PRINT:
-			break;
-		case CHISL_KEYWORD_SHOW:
-			break;
 		case CHISL_KEYWORD_MOUSE_SET:
 			change_arg_to_int(1);
 			change_arg_to_int(2);
 			break;
-		case CHISL_KEYWORD_MOUSE_SET_MATCH:
-			break;
 		case CHISL_KEYWORD_MOUSE_MOVE:
 			change_arg_to_int(1);
 			change_arg_to_int(2);
-			break;
-		case CHISL_KEYWORD_MOUSE_PRESS:
-			break;
-		case CHISL_KEYWORD_MOUSE_RELEASE:
-			break;
-		case CHISL_KEYWORD_MOUSE_CLICK:
 			break;
 		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
 			change_arg_to_int(1);
@@ -1352,20 +1526,8 @@ public:
 			change_arg_to_int(0);
 			change_arg_to_int(1);
 			break;
-		case CHISL_KEYWORD_KEY_PRESS:
-			break;
-		case CHISL_KEYWORD_KEY_RELEASE:
-			break;
-		case CHISL_KEYWORD_KEY_TYPE:
-			break;
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
 			change_arg_to_double(2);
-			break;
-		case CHISL_KEYWORD_LABEL:
-			break;
-		case CHISL_KEYWORD_GOTO:
-			break;
-		case CHISL_KEYWORD_GOTO_IF:
 			break;
 		}
 	}
@@ -1373,6 +1535,11 @@ public:
 	void fail(std::string const& message) const
 	{
 		std::cerr << "\"" << string_token_type(m_token) << "\" failed: " << message << std::endl;
+	}
+
+	std::string to_string() const
+	{
+		return std::format("Command({})", string_token_type(m_token));
 	}
 private:
 	void change_arg_to_int(size_t const index)
@@ -1731,11 +1898,15 @@ public:
 
 	void run()
 	{
+		std::cout << "Running program." << std::endl;
+
 		m_index = 0;
 		size_t lines = m_commands.size();
 
 		for (; m_index < lines; m_index++)
 		{
+			std::cout << "Executing: " << m_commands.at(m_index).to_string() << std::endl;
+
 			// execute the command
 			execute(m_commands.at(m_index));
 
@@ -1746,6 +1917,8 @@ public:
 				break;
 			}
 		}
+
+		std::cout << "Done running program." << std::endl;
 	}
 
 	Value evaluate(std::vector<Token> const& tokens)
@@ -1977,9 +2150,14 @@ public:
 			}
 
 			std::optional<Match> found = find(image, templateImage, DEFAULT_THRESHOLD);
-			if (!found.has_value()) break;
-
-			m_scope.set(command.get_arg<std::string>(0), found.value());
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(0), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(0), nullptr);
+			}
 
 			break;
 		}
@@ -2001,9 +2179,14 @@ public:
 
 			double threshold = command.get_arg<double>(6);
 			std::optional<Match> found = find(image, templateImage, threshold);
-			if (!found.has_value()) break;
-
-			m_scope.set(command.get_arg<std::string>(0), found.value());
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(0), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(0), nullptr);
+			}
 
 			break;
 		}
@@ -2024,9 +2207,14 @@ public:
 			}
 
 			std::optional<MatchCollection> found = find_all(image, templateImage, DEFAULT_THRESHOLD);
-			if (!found.has_value()) break;
-
-			m_scope.set(command.get_arg<std::string>(1), found.value());
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(0), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(0), nullptr);
+			}
 
 			break;
 		}
@@ -2048,15 +2236,178 @@ public:
 
 			double threshold = command.get_arg<double>(7);
 			std::optional<MatchCollection> found = find_all(image, templateImage, threshold);
-			if (!found.has_value()) break;
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(0), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(0), nullptr);
+			}
 
-			m_scope.set(command.get_arg<std::string>(1), found.value());
+			break;
+		}
+		case CHISL_KEYWORD_FIND_TEXT:
+		{
+			std::string templateText = command.get_text(4, m_scope);
+
+			Image image = command.get_variable<Image>(6, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find text image does not exist.");
+				break;
+			}
+
+			std::string ril = command.get_arg<std::string>(1);
+			tesseract::PageIteratorLevel pil;
+			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
+			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
+			else if (ril == "line") pil = tesseract::PageIteratorLevel::RIL_TEXTLINE;
+			else if (ril == "word") pil = tesseract::PageIteratorLevel::RIL_WORD;
+			else if (ril == "symbol") pil = tesseract::PageIteratorLevel::RIL_SYMBOL;
+			else
+			{
+				command.fail("Find text type is invalid.");
+				break;
+			}
+
+			std::optional<Match> found = find_text(image, templateText, pil, DEFAULT_THRESHOLD);
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(2), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(2), nullptr);
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_TEXT_WITH:
+		{
+			std::string templateText = command.get_text(4, m_scope);
+
+			Image image = command.get_variable<Image>(6, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find text image does not exist.");
+				break;
+			}
+
+			std::string ril = command.get_arg<std::string>(1);
+			tesseract::PageIteratorLevel pil;
+			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
+			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
+			else if (ril == "line") pil = tesseract::PageIteratorLevel::RIL_TEXTLINE;
+			else if (ril == "word") pil = tesseract::PageIteratorLevel::RIL_WORD;
+			else if (ril == "symbol") pil = tesseract::PageIteratorLevel::RIL_SYMBOL;
+			else
+			{
+				command.fail("Find text type is invalid.");
+				break;
+			}
+
+			double threshold = command.get_arg<double>(8);
+			std::optional<Match> found = find_text(image, templateText, pil, threshold);
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(2), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(2), nullptr);
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_ALL_TEXT:
+		{
+			std::string templateText = command.get_text(5, m_scope);
+
+			Image image = command.get_variable<Image>(7, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find text image does not exist.");
+				break;
+			}
+
+			std::string ril = command.get_arg<std::string>(2);
+			tesseract::PageIteratorLevel pil;
+			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
+			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
+			else if (ril == "line") pil = tesseract::PageIteratorLevel::RIL_TEXTLINE;
+			else if (ril == "word") pil = tesseract::PageIteratorLevel::RIL_WORD;
+			else if (ril == "symbol") pil = tesseract::PageIteratorLevel::RIL_SYMBOL;
+			else
+			{
+				command.fail("Find text type is invalid.");
+				break;
+			}
+
+			std::optional<MatchCollection> found = find_all_text(image, templateText, pil, DEFAULT_THRESHOLD);
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(3), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(3), nullptr);
+			}
+
+			break;
+		}
+		case CHISL_KEYWORD_FIND_ALL_TEXT_WITH:
+		{
+			std::string templateText = command.get_text(5, m_scope);
+
+			Image image = command.get_variable<Image>(7, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("Find text image does not exist.");
+				break;
+			}
+
+			std::string ril = command.get_arg<std::string>(2);
+			tesseract::PageIteratorLevel pil;
+			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
+			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
+			else if (ril == "line") pil = tesseract::PageIteratorLevel::RIL_TEXTLINE;
+			else if (ril == "word") pil = tesseract::PageIteratorLevel::RIL_WORD;
+			else if (ril == "symbol") pil = tesseract::PageIteratorLevel::RIL_SYMBOL;
+			else
+			{
+				command.fail("Find text type is invalid.");
+				break;
+			}
+
+			double threshold = command.get_arg<double>(9);
+			std::optional<MatchCollection> found = find_all_text(image, templateText, pil, threshold);
+			if (found.has_value())
+			{
+				m_scope.set(command.get_arg<std::string>(3), found.value());
+			}
+			else
+			{
+				m_scope.set(command.get_arg<std::string>(3), nullptr);
+			}
 
 			break;
 		}
 		case CHISL_KEYWORD_READ:
-			std::cout << "TODO: READ\n";
+		{
+			Image image = command.get_variable<Image>(2, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("The image to read from does not exist.");
+				break;
+			}
+
+			std::string text = read_from_image(image);
+
+			std::string name = command.get_arg<std::string>(0);
+			m_scope.set(name, text);
 			break;
+		}
 		case CHISL_KEYWORD_DRAW:
 		{
 			Match match = command.get_variable<Match>(0, m_scope);
