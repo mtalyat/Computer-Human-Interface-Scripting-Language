@@ -608,6 +608,17 @@ public:
 	}
 	template<typename T>
 	bool is() const { return std::holds_alternative<T>(m_value); }
+	std::string to_string() const
+	{
+		if (m_token == CHISL_GENERIC && std::holds_alternative<std::string>(m_value))
+		{
+			return std::get<std::string>(m_value);
+		}
+		else
+		{
+			return string_token_type(m_token);
+		}
+	}
 
 	static Token parse_token(std::string const& str)
 	{
@@ -1565,7 +1576,17 @@ public:
 
 	std::string to_string() const
 	{
-		return std::format("Command({})", string_token_type(m_token));
+		std::string args = "";
+
+		for (auto const& arg : m_args)
+		{
+			args.append(arg.to_string());
+			args.append(" ");
+		}
+
+		if (!args.empty()) args = args.substr(0, args.length() - 1);
+
+		return std::format("Command({} {})", string_token_type(m_token), args);
 	}
 private:
 	void change_arg_to_int(size_t const index)
