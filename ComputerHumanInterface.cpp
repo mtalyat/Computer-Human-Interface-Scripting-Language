@@ -801,6 +801,13 @@ Image crop(Image& image, int const x, int const y, int const w, int const h)
 	return Image(image.get()(rect));
 }
 
+Image resize(Image const& image, double const scale)
+{
+	cv::Mat resized;
+	cv::resize(image.get(), resized, cv::Size(), scale, scale, cv::INTER_LINEAR);
+	return Image(resized);
+}
+
 Image adjust_image_for_reading(Image& image)
 {
 	cv::Mat gray, binary, dilated;
@@ -808,17 +815,20 @@ Image adjust_image_for_reading(Image& image)
 	// grayscale
 	cv::cvtColor(image.get(), gray, cv::COLOR_BGR2GRAY);
 
-	//// adaptive thresholding
-	//cv::adaptiveThreshold(gray, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
+	// adaptive thresholding
+	cv::adaptiveThreshold(gray, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
 
-	//// create a structuring element (kernel) for dilation
-	//int dilation_size = 1; // Adjust this size if needed
-	//cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1));
+	// create a structuring element (kernel) for dilation
+	int dilation_size = 1; // Adjust this size if needed
+	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1));
 
-	//// dilation
-	//cv::dilate(binary, dilated, kernel);
+	// dilation
+	cv::dilate(binary, dilated, kernel);
 
-	return Image(gray);
+	// scale for smaller text
+	Image output = resize(Image(dilated), 4.0);
+
+	return output;
 }
 
 std::optional<Match> find(Image& image, Image& templateImage, double const threshold)
@@ -862,6 +872,8 @@ std::optional<Match> find_text(Image& image, std::string const& text, tesseract:
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
+
+	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
 
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
@@ -1007,6 +1019,8 @@ std::string read_from_image(Image const& image)
 		std::cerr << "Could not initialize tesseract.\n";
 		return "";
 	}
+
+	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
 
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
