@@ -42,6 +42,18 @@ std::vector<std::string> string_split(std::string const& str, std::regex const& 
 	return tokens;
 }
 
+std::string string_trim(const std::string& str) {
+	auto start = std::find_if_not(str.begin(), str.end(), [](int ch) {
+		return std::isspace(ch);
+		});
+
+	auto end = std::find_if_not(str.rbegin(), str.rend(), [](int ch) {
+		return std::isspace(ch);
+		}).base();
+
+		return (start < end ? std::string(start, end) : std::string());
+}
+
 WORD string_to_key(const std::string& keyString) {
 	static const std::unordered_map<std::string, WORD> keyMap = {
 		{"escape", VK_ESCAPE},
@@ -487,7 +499,7 @@ ChislToken parse_token_type(std::string const& str)
 		{ "press key", CHISL_KEYWORD_KEY_PRESS },
 		{ "release key", CHISL_KEYWORD_KEY_RELEASE },
 		{ "type", CHISL_KEYWORD_KEY_TYPE },
-		
+
 		{ "label", CHISL_KEYWORD_LABEL },
 		{ "goto", CHISL_KEYWORD_GOTO }
 	};
@@ -812,37 +824,72 @@ Image crop(Image& image, int const x, int const y, int const w, int const h)
 	return Image(image.get()(rect));
 }
 
-Image resize(Image const& image, double const scale)
+cv::Mat grayscale(const cv::Mat& image)
+{
+	cv::Mat gray;
+	cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+	return gray;
+}
+
+cv::Mat resize(const cv::Mat& image, double const scale)
 {
 	cv::Mat resized;
-	cv::resize(image.get(), resized, cv::Size(), scale, scale, cv::INTER_LINEAR);
-	return Image(resized);
+	cv::resize(image, resized, cv::Size(), scale, scale, cv::INTER_LINEAR);
+	return resized;
 }
 
-Image adjust_image_for_reading(Image& image)
+cv::Mat deskew_image(const cv::Mat& image) {
+	std::vector<cv::Point> points;
+	cv::findNonZero(image, points);
+	cv::RotatedRect box = cv::minAreaRect(points);
+
+	double angle = box.angle;
+	if (angle < -45.0) {
+		angle += 90.0;
+	}
+
+	cv::Mat rotMat = cv::getRotationMatrix2D(box.center, angle, 1.0);
+	cv::Mat rotated;
+	cv::warpAffine(image, rotated, rotMat, image.size(), cv::INTER_CUBIC);
+
+	return rotated;
+}
+
+cv::Mat improve_illumination(const cv::Mat& image) {
+	cv::Mat equalized;
+	cv::equalizeHist(image, equalized);
+
+	return equalized;
+}
+
+cv::Mat binarize_and_denoise(const cv::Mat& image) {
+	cv::Mat binary;
+	cv::adaptiveThreshold(image, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
+
+	cv::Mat denoised;
+	cv::fastNlMeansDenoising(binary, denoised, 30, 7, 21);
+
+	return denoised;
+}
+
+Image adjust_image_for_reading(Image const& image)
 {
-	cv::Mat gray, binary, dilated;
+	cv::Mat mat = image.get();
 
-	// grayscale
-	cv::cvtColor(image.get(), gray, cv::COLOR_BGR2GRAY);
+	mat = grayscale(mat);
 
-	// adaptive thresholding
-	cv::adaptiveThreshold(gray, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
+	mat = resize(mat, 8.0);
 
-	// create a structuring element (kernel) for dilation
-	int dilation_size = 1; // Adjust this size if needed
-	cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1));
+	//mat = deskew_image(mat);
 
-	// dilation
-	cv::dilate(binary, dilated, kernel);
+	//mat = improve_illumination(mat);
 
-	// scale for smaller text
-	Image output = resize(Image(dilated), 4.0);
+	//mat = binarize_and_denoise(mat);
 
-	return output;
+	return Image(mat);
 }
 
-std::optional<Match> find(Image& image, Image& templateImage, double const threshold)
+std::optional<Match> find(Image const& image, Image& templateImage, double const threshold)
 {
 	try {
 		cv::Mat result;
@@ -873,7 +920,7 @@ std::optional<Match> find(Image& image, Image& templateImage, double const thres
 	}
 }
 
-std::optional<Match> find_text(Image& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+std::optional<Match> find_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
 	cv::Mat src = srcImage.get();
@@ -895,6 +942,11 @@ std::optional<Match> find_text(Image& image, std::string const& text, tesseract:
 
 	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
+	double scaleX = static_cast<double>(image.get_width()) / src.cols;
+	double scaleY = static_cast<double>(image.get_height()) / src.rows;
+
+	std::string searchText = string_to_lower(text);
+
 	if (ri != 0) {
 		do {
 			const char* word = ri->GetUTF8Text(level);
@@ -903,11 +955,15 @@ std::optional<Match> find_text(Image& image, std::string const& text, tesseract:
 				int x1, y1, x2, y2;
 				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
 				std::string extractedWord(word);
-				if (extractedWord == text) {
-					targetX = x1;
-					targetY = y1;
-					targetWidth = x2 - x1;
-					targetHeight = y2 - y1;
+				extractedWord = string_trim(extractedWord);
+				extractedWord = string_to_lower(extractedWord);
+				//std::cout << "Found: " << extractedWord << std::endl;
+				if (extractedWord == searchText) {
+					//std::cout << "Match!" << std::endl;
+					targetX = x1 * scaleX;
+					targetY = y1 * scaleY;
+					targetWidth = (x2 - x1) * scaleX;
+					targetHeight = (y2 - y1) * scaleY;
 					break;
 				}
 			}
@@ -927,7 +983,7 @@ std::optional<Match> find_text(Image& image, std::string const& text, tesseract:
 	}
 }
 
-std::optional<MatchCollection> find_all(Image& image, Image& templateImage, double const threshold)
+std::optional<MatchCollection> find_all(Image const& image, Image& templateImage, double const threshold)
 {
 	try {
 		cv::Mat result;
@@ -964,7 +1020,7 @@ std::optional<MatchCollection> find_all(Image& image, Image& templateImage, doub
 	}
 }
 
-std::optional<MatchCollection> find_all_text(Image& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+std::optional<MatchCollection> find_all_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
 	cv::Mat src = srcImage.get();
@@ -974,6 +1030,8 @@ std::optional<MatchCollection> find_all_text(Image& image, std::string const& te
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
+
+	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
 
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
@@ -986,6 +1044,9 @@ std::optional<MatchCollection> find_all_text(Image& image, std::string const& te
 
 	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
+	double scaleX = static_cast<double>(image.get_width()) / src.cols;
+	double scaleY = static_cast<double>(image.get_height()) / src.rows;
+
 	if (ri != 0) {
 		do {
 			const char* word = ri->GetUTF8Text(level);
@@ -995,10 +1056,10 @@ std::optional<MatchCollection> find_all_text(Image& image, std::string const& te
 				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
 				std::string extractedWord(word);
 				if (extractedWord == text) {
-					targetX = x1;
-					targetY = y1;
-					targetWidth = x2 - x1;
-					targetHeight = y2 - y1;
+					targetX = x1 * scaleX;
+					targetY = y1 * scaleY;
+					targetWidth = (x2 - x1) * scaleX;
+					targetHeight = (y2 - y1) * scaleY;
 					matches.push_back(Match(cv::Point(targetWidth, targetHeight), cv::Point(targetX, targetY)));
 					break;
 				}
@@ -1021,9 +1082,8 @@ std::optional<MatchCollection> find_all_text(Image& image, std::string const& te
 
 std::string read_from_image(Image const& image)
 {
-	cv::Mat gray, src;
-	cv::cvtColor(image.get(), gray, cv::COLOR_BGR2GRAY);
-	cv::threshold(gray, src, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
+	Image srcImage = adjust_image_for_reading(image);
+	cv::Mat src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
 	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
@@ -2062,7 +2122,7 @@ public:
 		if (operands.size() != 1)
 		{
 			std::cerr << "Failed to evaluate.";
-			
+
 			return 0.0;
 		}
 
@@ -2801,18 +2861,18 @@ public:
 		}
 	}
 
-	private:
-		void goto_label(std::string const& label)
+private:
+	void goto_label(std::string const& label)
+	{
+		auto found = m_labels.find(label);
+		if (found == m_labels.end())
 		{
-			auto found = m_labels.find(label);
-			if (found == m_labels.end())
-			{
-				// label not found
-				std::cerr << "Label \"" << label << "\" not found.";
-			}
-			// move to LABEL statement, then next line will be what is after the label
-			m_index = found->second;
+			// label not found
+			std::cerr << "Label \"" << label << "\" not found.";
 		}
+		// move to LABEL statement, then next line will be what is after the label
+		m_index = found->second;
+	}
 };
 
 int main(int argc, char* argv[])
