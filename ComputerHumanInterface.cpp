@@ -933,6 +933,8 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 
 	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
 
+	ocr.SetVariable("user_defined_dpi", "71");
+
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
 
@@ -1033,6 +1035,8 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 
 	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
 
+	ocr.SetVariable("user_defined_dpi", "71");
+
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
 
@@ -1092,6 +1096,8 @@ std::string read_from_image(Image const& image)
 	}
 
 	ocr.SetPageSegMode(tesseract::PSM_SPARSE_TEXT);
+
+	ocr.SetVariable("user_defined_dpi", "71");
 
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
