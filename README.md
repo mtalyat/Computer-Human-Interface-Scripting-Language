@@ -2,9 +2,9 @@
 CHISL is a scripting language for controlling your device. It harnesses the power of computer vision to dynamically identify and interact with the elements on your screen.
 
 ## Features
-- Easy, readable scripting language.
+- Easy to learn, readable scripting language.
 - Control the keyboard and mouse.
-- Identify and use elements and text on the screen.
+- Identify and act upon elements and text on the screen.
 
 ## Syntax
 | Usage | Description |
