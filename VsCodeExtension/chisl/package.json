@@ -1,0 +1,25 @@
+{
+  "name": "chisl",
+  "displayName": "CHISL",
+  "description": "Support for Computer-Human Interaction Scripting Language.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.91.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "chisl",
+      "aliases": ["CHISL", "chisl"],
+      "extensions": [".chisl"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "chisl",
+      "scopeName": "source.chisl",
+      "path": "./syntaxes/chisl.tmLanguage.json"
+    }]
+  }
+}

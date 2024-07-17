@@ -1520,13 +1520,13 @@ public:
 		case CHISL_KEYWORD_FIND_ALL_WITH:
 			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in") && verify_keyword(6, "with");
 		case CHISL_KEYWORD_FIND_TEXT:
-			return verify_args_size(7) && verify_keyword(0, "text") && verify_keyword(3, "by") && verify_keyword(5, "in");
+			return verify_args_size(7) && verify_keyword(0, "text") && verify_keyword(1, {"block", "paragraph", "symbol", "line", "word"}) && verify_keyword(3, "by") && verify_keyword(5, "in");
 		case CHISL_KEYWORD_FIND_TEXT_WITH:
-			return verify_args_size(9) && verify_keyword(0, "text") && verify_keyword(3, "by") && verify_keyword(5, "in") && verify_keyword(7, "with");
+			return verify_args_size(9) && verify_keyword(0, "text") && verify_keyword(1, { "block", "paragraph", "symbol", "line", "word" }) && verify_keyword(3, "by") && verify_keyword(5, "in") && verify_keyword(7, "with");
 		case CHISL_KEYWORD_FIND_ALL_TEXT:
-			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(4, "by") && verify_keyword(6, "in");
+			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(2, { "block", "paragraph", "symbol", "line", "word" }) && verify_keyword(4, "by") && verify_keyword(6, "in");
 		case CHISL_KEYWORD_FIND_ALL_TEXT_WITH:
-			return verify_args_size(10) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(4, "by") && verify_keyword(6, "in") && verify_keyword(8, "with");
+			return verify_args_size(10) && verify_keyword(0, "all") && verify_keyword(1, "text") && verify_keyword(2, { "block", "paragraph", "symbol", "line", "word" }) && verify_keyword(4, "by") && verify_keyword(6, "in") && verify_keyword(8, "with");
 		case CHISL_KEYWORD_READ:
 			return verify_args_size(3) && verify_keyword(1, "from");
 		case CHISL_KEYWORD_DRAW:

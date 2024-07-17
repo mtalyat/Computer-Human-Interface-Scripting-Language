@@ -1,0 +1,76 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "CHISL",
+	"patterns": [
+		{
+			"include": "#commentBlocks"
+		},
+		{
+			"include": "#keywords"
+		},
+		{
+			"include": "#words"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#variables"
+		}
+	],
+	"repository": {
+		"commentBlocks": {
+			"name": "comment.block.chisl",
+			"begin": "#",
+			"end": "($|\n|#)"
+		},
+		"keywords": {
+			"patterns": [{
+				"name": "keyword.control.chisl",
+				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Find|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read)\\b"
+			}]
+		},
+		"words": {
+			"patterns": [{
+				"name": "keyword.other.chisl",
+				"match": "(?i)\\b(at|to|from|by|in|with|mouse|key|if|h|m|s|ms|left|middle|right)\\b"
+			}]
+		},
+		"strings": {
+			"name": "string.quoted.double.chisl",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.chisl",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"patterns": [{
+				"name": "constant.numeric.chisl",
+				"match": "\\b-?\\d*\\.?\\d+\\b"
+			}]
+		},
+		"operators": {
+			"patterns": [{
+				"name": "keyword.operator.chisl",
+				"match": "(==|!=|<=?|>=?)"
+			}]
+		},
+		"variables": {
+			"patterns": [{
+				"name": "variable.name.chisl",
+				"match": "\\b[a-zA-Z][a-zA-Z0-9]*\\b"
+			}]
+		}
+	},
+	"scopeName": "source.chisl"
+}
