@@ -16,7 +16,6 @@ Find text line text by "Go to" in screen.
 Goto error if text == 0.
 Set mouse to text.
 Click mouse left.
-Click mouse left.
 
 # Enter line
 Wait 100 ms.
