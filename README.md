@@ -11,14 +11,14 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 |---|---|
 | `# This is a comment.` | Comment. |
 | `Capture <name>.` | Captures all of the screen and stores it in `name`. |
-| `Capture <name> at <x> <y> <w> <h>.` | Captures part of the screen and stores it in `name`. |
+| `Capture <name> at <x> <y> <width> <height>.` | Captures part of the screen and stores it in `name`. |
 | `Set <name> to <value>.` | Sets a variable to a value. |
 | `Get <name> from <collection> at <index>.` | Gets the value from a collection at the `index` and stores it in `name`. |
 | `Load <name> from <path>.` | Load a file from the path into the variable. |
 | `Save <name> to <path>.` | Saves a variable to the disk. |
 | `Delete <name>.` | Deletes the variable with the name. |
 | `Copy <name> to <destination>.` | Copies the value of `variable` to `name`. |
-| `Crop <image> at <x> <y> <w> <h>.` | Crops the image in `name` to the x y w h. |
+| `Crop <image> at <x> <y> <width> <height>.` | Crops the image in `name` to the x y width height. |
 | `Find <name> by <template> in <image>.` | Finds the best match of `template` within `image` equal to or above the default threshold. |
 | `Find <name> by <template> in <image> with <threshold>.` | Finds the best match of `template` within `image` equal to or above the given threshold. |
 | `Find all <name> by <template> in <image>.` | Finds all possible matches equal to or above the default threshold. |
@@ -44,7 +44,7 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Scroll mouse <y> <x=0>.` | Sends a mouse scroll event to the OS. |
 | `Press key <key>.` | Sends a key down event to the OS. |
 | `Release key <key>.` | Sends a key up event to the OS. |
-| `Type <value>.` | Sends a series of key up/downs of the phrase or variable to the OS. `delay` is set to 0.1. |
+| `Type <value>.` | Sends a series of key up/downs of the phrase or variable to the OS. |
 | `Type <value> with <delay> delay.` | Sends a series of key up/downs of the phrase or variable to the OS. `delay` is the wait time between each character. |
 | `Label <label>.` | Creates a label that can be gone to with a goto statement. |
 | `Goto <label>.` | Starts executing at the given `label`. |
