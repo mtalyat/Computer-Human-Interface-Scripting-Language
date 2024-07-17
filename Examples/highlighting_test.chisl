@@ -1,0 +1,41 @@
+
+Capture screen. 
+Capture screen at 0 0 1 1. 
+Set name to value. 
+Get name from collection at index. 
+Load name from path. 
+Save name to path. 
+Delete name. 
+Copy name to destination. 
+Crop name at 0 0 1 1. 
+Find name by template in image. 
+Find name by template in image with threshold. 
+Find all name by template in image. 
+Find all name by template in image with threshold. 
+Find text block name by template in image. 
+Find text block name by template in image with threshold. 
+Find all text block name by template in image. 
+Find all text block name by template in image with threshold. 
+Read name from image. 
+Draw name on image. 
+Draw 0 0 1 1 on image. 
+Wait 100 ms. 
+Pause. 
+Print value. 
+Show value. 
+Set mouse to match. 
+Set mouse to x y. 
+Move mouse by x y. 
+Press mouse left. 
+Release mouse middle. 
+Click mouse left. 
+Click mouse left 100 times. 
+Scroll mouse y. 
+Scroll mouse y x. 
+Press key escape.
+Release key escape. 
+Type value. 
+Type value with 100 delay. 
+Label start. 
+Goto start. 
+Goto start if x < 100. 
