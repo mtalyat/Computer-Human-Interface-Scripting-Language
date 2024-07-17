@@ -1,0 +1,282 @@
+{
+    "Capture": {
+        "prefix": "capture",
+        "body": [
+            "Capture ${1:name}. "
+        ],
+        "description": "Captures all of the screen and stores it in `name`."
+    },
+    "Capture at": {
+        "prefix": "capture at",
+        "body": [
+            "Capture ${1:name} at ${2:x} ${3:y} ${4:width} ${5:height}. "
+        ],
+        "description": "Captures part of the screen and stores it in `name`."
+    },
+    "Set": {
+        "prefix": "set",
+        "body": [
+            "Set ${1:name} to ${2:value}. "
+        ],
+        "description": "Sets a variable to a value."
+    },
+    "Get": {
+        "prefix": "get",
+        "body": [
+            "Get ${1:name} from ${2:collection} at ${3:index}. "
+        ],
+        "description": "Gets the value from a collection at the `index` and stores it in `name`."
+    },
+    "Load": {
+        "prefix": "load",
+        "body": [
+            "Load ${1:name} from ${2:path}. "
+        ],
+        "description": "Load a file from the path into the variable."
+    },
+    "Save": {
+        "prefix": "save",
+        "body": [
+            "Save ${1:name} to ${2:path}. "
+        ],
+        "description": "Saves a variable to the disk."
+    },
+    "Delete": {
+        "prefix": "delete",
+        "body": [
+            "Delete ${1:name}. "
+        ],
+        "description": "Deletes the variable with the name."
+    },
+    "Copy": {
+        "prefix": "copy",
+        "body": [
+            "Copy ${1:name} to ${2:destination}. "
+        ],
+        "description": "Copies the value of `variable` to `name`."
+    },
+    "Crop": {
+        "prefix": "crop",
+        "body": [
+            "Crop ${1:name} at ${2:x} ${3:y} ${4:width} ${5:height}. "
+        ],
+        "description": "Crops the image in `name` to the x y width height."
+    },
+    "Find": {
+        "prefix": "find",
+        "body": [
+            "Find ${1:name} by ${2:template} in ${3:image}. "
+        ],
+        "description": "Finds the best match of `template` within `image` equal to or above the default threshold."
+    },
+    "Find with": {
+        "prefix": "find with",
+        "body": [
+            "Find ${1:name} by ${2:template} in ${3:image} with ${4:threshold}. "
+        ],
+        "description": "Finds the best match of `template` within `image` equal to or above the given threshold."
+    },
+    "Find all": {
+        "prefix": "find all",
+        "body": [
+            "Find all ${1:name} by ${2:template} in ${3:image}. "
+        ],
+        "description": "Finds all possible matches equal to or above the default threshold."
+    },
+    "Find all with": {
+        "prefix": "find all with",
+        "body": [
+            "Find all ${1:name} by ${2:template} in ${3:image} with ${4:threshold}. "
+        ],
+        "description": "Finds all possible matches equal to or above the given threshold."
+    },
+    "Find text": {
+        "prefix": "find text",
+        "body": [
+            "Find text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image}. "
+        ],
+        "description": "Finds the best match of text `template` within `image` equal to or above the default threshold."
+    },
+    "Find text with": {
+        "prefix": "find text with",
+        "body": [
+            "Find text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image} with ${5:threshold}. "
+        ],
+        "description": "Finds the best match of text `template` within `image` equal to or above the given threshold."
+    },
+    "Find all text": {
+        "prefix": "find all text",
+        "body": [
+            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image}. "
+        ],
+        "description": "Finds all possible text matches equal to or above the default threshold."
+    },
+    "Find all text with": {
+        "prefix": "find all text with",
+        "body": [
+            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image} with ${5:threshold}. "
+        ],
+        "description": "Finds all possible text matches equal to or above the given threshold."
+    },
+    "Read": {
+        "prefix": "read",
+        "body": [
+            "Read ${1:name} from ${2:image}. "
+        ],
+        "description": "Reads all of the text in `image`."
+    },
+    "Draw": {
+        "prefix": "draw",
+        "body": [
+            "Draw ${1:name} on ${2:image}. "
+        ],
+        "description": "Draws an outline of `match` onto `image`."
+    },
+    "Draw rect": {
+        "prefix": "draw rect",
+        "body": [
+            "Draw ${1:x} ${2:y} ${3:width} ${4:height} on ${5:image}. "
+        ],
+        "description": "Draws a rectangle into `image`."
+    },
+    "Wait": {
+        "prefix": "wait",
+        "body": [
+            "Wait ${1:time} ${2|ms,s,m,h|}. "
+        ],
+        "description": "Pauses for the given number of milliseconds."
+    },
+    "Pause": {
+        "prefix": "pause",
+        "body": [
+            "Pause. "
+        ],
+        "description": "Pauses until the user hits a key."
+    },
+    "Print": {
+        "prefix": "print",
+        "body": [
+            "Print ${1:value}. "
+        ],
+        "description": "Prints the text or variable to the console."
+    },
+    "Show": {
+        "prefix": "show",
+        "body": [
+            "Show ${1:value}. "
+        ],
+        "description": "Shows the text or variable."
+    },
+    "Set mouse to position": {
+        "prefix": "set mouse to",
+        "body": [
+            "Set mouse to ${1:x} ${2:y}. "
+        ],
+        "description": "Sets the mouse to the position."
+    },
+    "Set mouse to match": {
+        "prefix": "set mouse",
+        "body": [
+            "Set mouse to ${1:match}. "
+        ],
+        "description": "Sets the mouse to the match position."
+    },
+    "Move mouse by": {
+        "prefix": "move mouse",
+        "body": [
+            "Move mouse by ${1:x} ${2:y}. "
+        ],
+        "description": "Moves the mouse relative to its current position."
+    },
+    "Press mouse": {
+        "prefix": "press mouse",
+        "body": [
+            "Press mouse ${1|left,middle,right|}. "
+        ],
+        "description": "Sends a mouse button press event to the OS."
+    },
+    "Release mouse": {
+        "prefix": "release mouse",
+        "body": [
+            "Release mouse ${1|left,middle,right|}. "
+        ],
+        "description": "Sends a mouse button release event to the OS."
+    },
+    "Click mouse": {
+        "prefix": "click mouse",
+        "body": [
+            "Click mouse ${1|left,middle,right|}. "
+        ],
+        "description": "Sends a mouse button release event to the OS."
+    },
+    "Click mouse X times": {
+        "prefix": "click mouse times",
+        "body": [
+            "Click mouse ${1|left,middle,right|} ${2:times} times. "
+        ],
+        "description": "Sends multiple mouse down and mouse up event to the OS."
+    },
+    "Scroll mouse": {
+        "prefix": "scroll mouse",
+        "body": [
+            "Scroll mouse ${1:y}. "
+        ],
+        "description": "Sends a mouse scroll event to the OS."
+    },
+    "Scroll mouse xy": {
+        "prefix": "scroll mouse xy",
+        "body": [
+            "Scroll mouse ${1:y} ${2:x}. "
+        ],
+        "description": "Sends a mouse scroll event to the OS."
+    },
+    "Press key": {
+        "prefix": "press key",
+        "body": [
+            "Press key ${1:key}. "
+        ],
+        "description": "Sends a key down event to the OS."
+    },
+    "Release key": {
+        "prefix": "release key",
+        "body": [
+            "Release key ${1:key}. "
+        ],
+        "description": "Sends a key up event to the OS."
+    },
+    "Type key": {
+        "prefix": "type key",
+        "body": [
+            "Type ${1:value}. "
+        ],
+        "description": "Sends a series of key up/downs of the phrase or variable to the OS."
+    },
+    "Type key with delay": {
+        "prefix": "type key with",
+        "body": [
+            "Type ${1:value} with ${2:delay} delay. "
+        ],
+        "description": "Sends a series of key up/downs of the phrase or variable to the OS. `delay` is the wait time between each character."
+    },
+    "Label": {
+        "prefix": "label",
+        "body": [
+            "Label ${1:label}. "
+        ],
+        "description": "Creates a label that can be gone to with a goto statement."
+    },
+    "Goto": {
+        "prefix": "goto",
+        "body": [
+            "Goto ${1:label}. "
+        ],
+        "description": "Starts executing at the given `label`."
+    },
+    "Goto if": {
+        "prefix": "goto if",
+        "body": [
+            "Goto ${1:label} if ${2:condition}. "
+        ],
+        "description": "Goes to the label only if the `condition` is true."
+    }
+}
