@@ -942,7 +942,7 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 	ocr.Recognize(nullptr);
 	tesseract::ResultIterator* ri = ocr.GetIterator();
 
-	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+	double targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
 	double scaleX = static_cast<double>(image.get_width()) / src.cols;
 	double scaleY = static_cast<double>(image.get_height()) / src.rows;
@@ -977,7 +977,7 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 
 	if (targetX != -1 && targetY != -1)
 	{
-		return Match(cv::Point(targetWidth, targetHeight), cv::Point(targetX, targetY));
+		return Match(cv::Point(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), cv::Point(static_cast<int>(targetX), static_cast<int>(targetY)));
 	}
 	else
 	{
@@ -1046,7 +1046,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 
 	std::vector<Match> matches;
 
-	int targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+	double targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
 	double scaleX = static_cast<double>(image.get_width()) / src.cols;
 	double scaleY = static_cast<double>(image.get_height()) / src.rows;
@@ -1064,7 +1064,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 					targetY = y1 * scaleY;
 					targetWidth = (x2 - x1) * scaleX;
 					targetHeight = (y2 - y1) * scaleY;
-					matches.push_back(Match(cv::Point(targetWidth, targetHeight), cv::Point(targetX, targetY)));
+					matches.push_back(Match(cv::Point(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), cv::Point(static_cast<int>(targetX), static_cast<int>(targetY))));
 					break;
 				}
 			}
@@ -2011,14 +2011,14 @@ public:
 
 	void run()
 	{
-		std::cout << "Running program." << std::endl;
+		//std::cout << "Running program." << std::endl;
 
 		m_index = 0;
 		size_t lines = m_commands.size();
 
 		for (; m_index < lines; m_index++)
 		{
-			std::cout << "Executing: " << m_commands.at(m_index).to_string() << std::endl;
+			//std::cout << "Executing: " << m_commands.at(m_index).to_string() << std::endl;
 
 			// execute the command
 			execute(m_commands.at(m_index));
@@ -2031,7 +2031,7 @@ public:
 			}
 		}
 
-		std::cout << "Done running program." << std::endl;
+		//std::cout << "Done running program." << std::endl;
 	}
 
 	Value evaluate(std::vector<Token> const& tokens)
