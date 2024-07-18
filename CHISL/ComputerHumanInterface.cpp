@@ -878,7 +878,7 @@ Image adjust_image_for_reading(Image const& image)
 
 	mat = grayscale(mat);
 
-	mat = resize(mat, 8.0);
+	mat = resize(mat, 4.0);
 
 	//mat = deskew_image(mat);
 
