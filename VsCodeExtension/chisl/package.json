@@ -9,6 +9,13 @@
   "categories": [
     "Programming Languages"
   ],
+  "repository": {
+    "url": "https://github.com/mtalyat/Computer-Human-Interface-Scripting-Language/tree/main/VsCodeExtension/chisl"
+  },
+  "bugs": {
+    "url": "https://github.com/mtalyat/Computer-Human-Interface-Scripting-Language/issues"
+  },
+  "publisher": "mtalyat",
   "contributes": {
     "languages": [{
       "id": "chisl",
