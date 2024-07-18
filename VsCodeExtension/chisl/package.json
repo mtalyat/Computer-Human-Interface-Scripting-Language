@@ -1,7 +1,7 @@
 {
   "name": "chisl",
   "displayName": "CHISL",
-  "description": "Support for Computer-Human Interaction Scripting Language.",
+  "description": "Support for Computer-Human Interface Scripting Language.",
   "version": "1.0.0",
   "engines": {
     "vscode": "^1.91.0"

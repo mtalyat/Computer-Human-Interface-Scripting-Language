@@ -1,4 +1,4 @@
-# Computer-Human Interaction Scripting Language
+# Computer-Human Interface Scripting Language
 CHISL is a scripting language for controlling your device. It harnesses the power of computer vision to dynamically identify and interact with the elements on your screen.
 
 ## Features
