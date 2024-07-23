@@ -17,6 +17,7 @@ typedef std::string CHISL_STRING;
 typedef double CHISL_FLOAT;
 typedef long CHISL_INT;
 typedef cv::Mat CHISL_MATRIX;
+typedef cv::Point CHISL_POINT;
 
 constexpr CHISL_FLOAT DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
@@ -246,7 +247,7 @@ public:
 	Image(CHISL_MATRIX const image)
 		: m_image(image)
 	{}
-	Image(CHISL_MATRIX const image, cv::Point const point)
+	Image(CHISL_MATRIX const image, CHISL_POINT const point)
 		: m_image(image)
 	{}
 
@@ -255,7 +256,7 @@ public:
 	bool empty() const { return m_image.empty(); }
 	int get_width() const { return m_image.cols; }
 	int get_height() const { return m_image.rows; }
-	cv::Point get_size() const { return cv::Point{ get_width(), get_height() }; }
+	CHISL_POINT get_size() const { return CHISL_POINT{ get_width(), get_height() }; }
 	Image clone() const
 	{
 		CHISL_MATRIX mat;
@@ -276,17 +277,17 @@ public:
 class Match
 {
 private:
-	cv::Point m_size;
-	cv::Point m_point;
+	CHISL_POINT m_size;
+	CHISL_POINT m_point;
 
 public:
 	Match() = default;
-	Match(cv::Point const size, cv::Point const point)
+	Match(CHISL_POINT const size, CHISL_POINT const point)
 		: m_size(size), m_point(point) {}
 
-	cv::Point get_size() const { return m_size; }
-	cv::Point get_point() const { return m_point; }
-	cv::Point get_center() const { return m_point + m_size / 2; }
+	CHISL_POINT get_size() const { return m_size; }
+	CHISL_POINT get_point() const { return m_point; }
+	CHISL_POINT get_center() const { return m_point + m_size / 2; }
 	bool empty() const { return !m_size.x && !m_size.y; }
 	CHISL_STRING to_string() const { return std::format("Match({}, {}, {}, {})", m_point.x, m_point.y, m_size.x, m_size.y); }
 };
@@ -301,7 +302,7 @@ private:
 
 public:
 	MatchCollection() = default;
-	MatchCollection(cv::Point const size, std::vector<cv::Point> const& points)
+	MatchCollection(CHISL_POINT const size, std::vector<CHISL_POINT> const& points)
 		: m_matches()
 	{
 		m_matches.reserve(points.size());
@@ -985,7 +986,7 @@ std::optional<Match> find(Image const& image, Image& templateImage, CHISL_FLOAT 
 		cv::matchTemplate(image.get(), templateImage.get(), result, cv::TM_CCOEFF_NORMED);
 
 		CHISL_FLOAT minVal, maxVal;
-		cv::Point minLoc, maxLoc;
+		CHISL_POINT minLoc, maxLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
 
 		if (result.at<float>(maxLoc.y, maxLoc.x) < threshold)
@@ -1074,7 +1075,7 @@ std::optional<Match> find_text(Image const& image, CHISL_STRING const& text, tes
 
 	if (targetX != -1 && targetY != -1)
 	{
-		return Match(cv::Point(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), cv::Point(static_cast<int>(targetX), static_cast<int>(targetY)));
+		return Match(CHISL_POINT(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), CHISL_POINT(static_cast<int>(targetX), static_cast<int>(targetY)));
 	}
 	else
 	{
@@ -1095,7 +1096,7 @@ std::optional<MatchCollection> find_all(Image const& image, Image& templateImage
 		CHISL_MATRIX result;
 		cv::matchTemplate(image.get(), templateImage.get(), result, cv::TM_CCOEFF_NORMED);
 
-		std::vector<cv::Point> points;
+		std::vector<CHISL_POINT> points;
 
 		int w = templateImage.get_width();
 		int h = templateImage.get_height();
@@ -1104,7 +1105,7 @@ std::optional<MatchCollection> find_all(Image const& image, Image& templateImage
 			for (int x = 0; x < result.cols; ++x) {
 				CHISL_FLOAT value = result.at<float>(y, x);
 				if (value >= threshold) {
-					cv::Point point(x, y);
+					CHISL_POINT point(x, y);
 					points.push_back(point);
 				}
 			}
@@ -1176,7 +1177,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, CHISL_STRING co
 					targetY = y1 * scaleY;
 					targetWidth = (x2 - x1) * scaleX;
 					targetHeight = (y2 - y1) * scaleY;
-					matches.push_back(Match(cv::Point(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), cv::Point(static_cast<int>(targetX), static_cast<int>(targetY))));
+					matches.push_back(Match(CHISL_POINT(static_cast<int>(targetWidth), static_cast<int>(targetHeight)), CHISL_POINT(static_cast<int>(targetX), static_cast<int>(targetY))));
 					break;
 				}
 			}
@@ -2804,7 +2805,7 @@ public:
 				break;
 			}
 
-			cv::Point center = match.get_center();
+			CHISL_POINT center = match.get_center();
 			mouse_set(center.x, center.y);
 			break;
 		}
