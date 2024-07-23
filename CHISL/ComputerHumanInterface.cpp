@@ -20,6 +20,11 @@ typedef long CHISL_INT;
 constexpr double DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
 
+/// <summary>
+/// Converts the given string into lower case characters.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 std::string string_to_lower(std::string str)
 {
 	std::transform(str.begin(), str.end(), str.begin(),
@@ -27,6 +32,12 @@ std::string string_to_lower(std::string str)
 	return str;
 }
 
+/// <summary>
+/// Splits the given string based on the given regex.
+/// </summary>
+/// <param name="str"></param>
+/// <param name="re"></param>
+/// <returns></returns>
 std::vector<std::string> string_split(std::string const& str, std::regex const& re)
 {
 	std::vector<std::string> tokens;
@@ -42,6 +53,11 @@ std::vector<std::string> string_split(std::string const& str, std::regex const& 
 	return tokens;
 }
 
+/// <summary>
+/// Trims all whitespace from the beginning and end of the given string.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 std::string string_trim(const std::string& str) {
 	auto start = std::find_if_not(str.begin(), str.end(), [](int ch) {
 		return std::isspace(ch);
@@ -54,6 +70,11 @@ std::string string_trim(const std::string& str) {
 		return (start < end ? std::string(start, end) : std::string());
 }
 
+/// <summary>
+/// Converts a string into a key.
+/// </summary>
+/// <param name="keyString"></param>
+/// <returns></returns>
 WORD string_to_key(const std::string& keyString) {
 	static const std::unordered_map<std::string, WORD> keyMap = {
 		{"escape", VK_ESCAPE},
@@ -125,17 +146,32 @@ WORD string_to_key(const std::string& keyString) {
 	}
 }
 
+/// <summary>
+/// Checks if a specific key is being held down.
+/// </summary>
+/// <param name="key"></param>
+/// <returns></returns>
 bool check_for_key_input(WORD const key)
 {
 	return GetAsyncKeyState(key) & 0x8000;
 }
 
+/// <summary>
+/// Checks if the given string can be parsed into an int.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 bool can_parse_int(const std::string& str)
 {
 	std::regex re(R"(^[-+]?\d+$)");
 	return std::regex_match(str, re);
 }
 
+/// <summary>
+/// Parses the given string into an int.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 int parse_int(const std::string& str) {
 	int result = 0;
 
@@ -158,12 +194,22 @@ int parse_int(const std::string& str) {
 	return result;
 }
 
+/// <summary>
+/// Checks if the given string can be parsed into a double.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 bool can_parse_double(const std::string& str)
 {
 	std::regex re(R"(^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$)");
 	return std::regex_match(str, re);
 }
 
+/// <summary>
+/// Parses the given string into a double.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 double parse_double(const std::string& str) {
 	double result = 0;
 
@@ -223,6 +269,9 @@ public:
 	}
 };
 
+/// <summary>
+/// Holds data for a template match on another image.
+/// </summary>
 class Match
 {
 private:
@@ -241,6 +290,9 @@ public:
 	std::string to_string() const { return std::format("Match({}, {}, {}, {})", m_point.x, m_point.y, m_size.x, m_size.y); }
 };
 
+/// <summary>
+/// Holds data for a collection of Matches.
+/// </summary>
 class MatchCollection
 {
 private:
@@ -268,6 +320,11 @@ public:
 
 using Value = std::variant<nullptr_t, Image, Match, MatchCollection, std::string, int, double>;
 
+/// <summary>
+/// Converts the given Value into a number, if able.
+/// </summary>
+/// <param name="value"></param>
+/// <returns></returns>
 double value_to_number(Value const& value)
 {
 	if (std::holds_alternative<std::string>(value))
@@ -447,6 +504,11 @@ int token_get_precedence(ChislToken const token)
 	}
 }
 
+/// <summary>
+/// Parses the given string into a token.
+/// </summary>
+/// <param name="str"></param>
+/// <returns></returns>
 ChislToken parse_token_type(std::string const& str)
 {
 	static std::unordered_map<std::string, ChislToken> types =
@@ -514,6 +576,11 @@ ChislToken parse_token_type(std::string const& str)
 	return found->second;
 }
 
+/// <summary>
+/// Converts the given token into a string.
+/// </summary>
+/// <param name="token"></param>
+/// <returns></returns>
 std::string string_token_type(ChislToken const token)
 {
 	static std::unordered_map<ChislToken, std::string> tokenStrings =
@@ -699,6 +766,11 @@ cv::Mat hwnd2mat(HWND hwnd)
 	return src;
 }
 
+/// <summary>
+/// Reads text from a file.
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
 std::optional<std::string> text_read(std::string const& path)
 {
 	try
@@ -720,6 +792,11 @@ std::optional<std::string> text_read(std::string const& path)
 	return std::nullopt;
 }
 
+/// <summary>
+/// Reads an image from a file.
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
 std::optional<Image> image_read(std::string const& path)
 {
 	if (!std::filesystem::exists(path))
@@ -752,6 +829,11 @@ std::optional<Image> image_read(std::string const& path)
 	return std::nullopt;
 }
 
+/// <summary>
+/// Reads a Value from a file.
+/// </summary>
+/// <param name="path"></param>
+/// <returns></returns>
 std::optional<Value> file_read(std::string const& path)
 {
 	if (path.ends_with(".txt"))
@@ -788,11 +870,21 @@ void text_write(std::string const& path, std::string const& text)
 	}
 }
 
+/// <summary>
+/// Writes an image to a file.
+/// </summary>
+/// <param name="path"></param>
+/// <param name="image"></param>
 void image_write(std::string const& path, Image const& image)
 {
 	cv::imwrite(path, image.get());
 }
 
+/// <summary>
+/// Writes a Value to a file.
+/// </summary>
+/// <param name="path"></param>
+/// <param name="value"></param>
 void file_write(std::string const& path, Value const& value)
 {
 	if (std::holds_alternative<std::string>(value))
@@ -809,6 +901,10 @@ void file_write(std::string const& path, Value const& value)
 	}
 }
 
+/// <summary>
+/// Takes a screenshot.
+/// </summary>
+/// <returns></returns>
 Image screenshot()
 {
 	HWND hwnd = GetDesktopWindow();
@@ -818,12 +914,26 @@ Image screenshot()
 	return Image(screenConverted);
 }
 
+/// <summary>
+/// Crops the given image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="x"></param>
+/// <param name="y"></param>
+/// <param name="w"></param>
+/// <param name="h"></param>
+/// <returns></returns>
 Image crop(Image& image, int const x, int const y, int const w, int const h)
 {
 	cv::Rect rect(x, y, w, h);
 	return Image(image.get()(rect));
 }
 
+/// <summary>
+/// Converts the matrix to grayscale.
+/// </summary>
+/// <param name="image"></param>
+/// <returns></returns>
 cv::Mat grayscale(const cv::Mat& image)
 {
 	cv::Mat gray;
@@ -831,6 +941,12 @@ cv::Mat grayscale(const cv::Mat& image)
 	return gray;
 }
 
+/// <summary>
+/// Resizes the matrix.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="scale"></param>
+/// <returns></returns>
 cv::Mat resize(const cv::Mat& image, double const scale)
 {
 	cv::Mat resized;
@@ -838,40 +954,11 @@ cv::Mat resize(const cv::Mat& image, double const scale)
 	return resized;
 }
 
-cv::Mat deskew_image(const cv::Mat& image) {
-	std::vector<cv::Point> points;
-	cv::findNonZero(image, points);
-	cv::RotatedRect box = cv::minAreaRect(points);
-
-	double angle = box.angle;
-	if (angle < -45.0) {
-		angle += 90.0;
-	}
-
-	cv::Mat rotMat = cv::getRotationMatrix2D(box.center, angle, 1.0);
-	cv::Mat rotated;
-	cv::warpAffine(image, rotated, rotMat, image.size(), cv::INTER_CUBIC);
-
-	return rotated;
-}
-
-cv::Mat improve_illumination(const cv::Mat& image) {
-	cv::Mat equalized;
-	cv::equalizeHist(image, equalized);
-
-	return equalized;
-}
-
-cv::Mat binarize_and_denoise(const cv::Mat& image) {
-	cv::Mat binary;
-	cv::adaptiveThreshold(image, binary, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2);
-
-	cv::Mat denoised;
-	cv::fastNlMeansDenoising(binary, denoised, 30, 7, 21);
-
-	return denoised;
-}
-
+/// <summary>
+/// Adjusts an image for reading text.
+/// </summary>
+/// <param name="image"></param>
+/// <returns></returns>
 Image adjust_image_for_reading(Image const& image)
 {
 	cv::Mat mat = image.get();
@@ -880,15 +967,16 @@ Image adjust_image_for_reading(Image const& image)
 
 	mat = resize(mat, 4.0);
 
-	//mat = deskew_image(mat);
-
-	//mat = improve_illumination(mat);
-
-	//mat = binarize_and_denoise(mat);
-
 	return Image(mat);
 }
 
+/// <summary>
+/// Finds a template image within an image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="templateImage"></param>
+/// <param name="threshold"></param>
+/// <returns></returns>
 std::optional<Match> find(Image const& image, Image& templateImage, double const threshold)
 {
 	try {
@@ -920,6 +1008,14 @@ std::optional<Match> find(Image const& image, Image& templateImage, double const
 	}
 }
 
+/// <summary>
+/// Finds text within an image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="text"></param>
+/// <param name="level"></param>
+/// <param name="threshold"></param>
+/// <returns></returns>
 std::optional<Match> find_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
@@ -985,6 +1081,13 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 	}
 }
 
+/// <summary>
+/// Finds all occurances of the template image within the image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="templateImage"></param>
+/// <param name="threshold"></param>
+/// <returns></returns>
 std::optional<MatchCollection> find_all(Image const& image, Image& templateImage, double const threshold)
 {
 	try {
@@ -1022,6 +1125,14 @@ std::optional<MatchCollection> find_all(Image const& image, Image& templateImage
 	}
 }
 
+/// <summary>
+/// Finds all occurances of the text within the image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="text"></param>
+/// <param name="level"></param>
+/// <param name="threshold"></param>
+/// <returns></returns>
 std::optional<MatchCollection> find_all_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
@@ -1084,6 +1195,11 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 	}
 }
 
+/// <summary>
+/// Reads all of the text within the given image.
+/// </summary>
+/// <param name="image"></param>
+/// <returns></returns>
 std::string read_from_image(Image const& image)
 {
 	Image srcImage = adjust_image_for_reading(image);
@@ -1110,6 +1226,13 @@ std::string read_from_image(Image const& image)
 	return outString;
 }
 
+/// <summary>
+/// Draws the outline of the given Match on the given Image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="match"></param>
+/// <param name="color"></param>
+/// <param name="width"></param>
 void draw(Image& image, Match const& match, cv::Scalar const color = cv::Scalar(0, 0, 255), int width = 2)
 {
 	cv::rectangle(image.get(), match.get_point(), match.get_point() + match.get_size(), color, width);
@@ -1122,6 +1245,10 @@ enum class MouseButton
 	Middle
 };
 
+/// <summary>
+/// Prints the given Value to the screen.
+/// </summary>
+/// <param name="value"></param>
 void print(Value const& value)
 {
 	if (std::holds_alternative<std::string>(value))
@@ -1160,6 +1287,10 @@ void print(Value const& value)
 	}
 }
 
+/// <summary>
+/// Shows the given Value.
+/// </summary>
+/// <param name="value"></param>
 void show(Value const& value)
 {
 	if (std::holds_alternative<Image>(value))
@@ -1172,21 +1303,38 @@ void show(Value const& value)
 	}
 }
 
+/// <summary>
+/// Waits a given number of milliseconds.
+/// </summary>
+/// <param name="ms"></param>
 void wait(DWORD const ms)
 {
 	Sleep(ms);
 }
 
+/// <summary>
+/// Waits until any key has been pressed.
+/// </summary>
 void pause()
 {
 	cv::waitKey(0);
 }
 
+/// <summary>
+/// Sets the mouse to the given X and Y position.
+/// </summary>
+/// <param name="x"></param>
+/// <param name="y"></param>
 void mouse_set(int const x, int const y)
 {
 	SetCursorPos(x, y);
 }
 
+/// <summary>
+/// Moves the mouse relative to its current position.
+/// </summary>
+/// <param name="x"></param>
+/// <param name="y"></param>
 void mouse_move(int const x, int const y)
 {
 	POINT cursorPos;
@@ -1196,6 +1344,10 @@ void mouse_move(int const x, int const y)
 	}
 }
 
+/// <summary>
+/// Presses a mouse button down.
+/// </summary>
+/// <param name="button"></param>
 void mouse_down(MouseButton const button = MouseButton::Left)
 {
 	INPUT inputs[2] = {};
@@ -1218,6 +1370,10 @@ void mouse_down(MouseButton const button = MouseButton::Left)
 	SendInput(1, inputs, sizeof(INPUT));
 }
 
+/// <summary>
+/// Releases a mouse button.
+/// </summary>
+/// <param name="button"></param>
 void mouse_up(MouseButton const button = MouseButton::Left)
 {
 	INPUT inputs[2] = {};
@@ -1240,6 +1396,10 @@ void mouse_up(MouseButton const button = MouseButton::Left)
 	SendInput(1, inputs, sizeof(INPUT));
 }
 
+/// <summary>
+/// Presses down and releases a mouse button.
+/// </summary>
+/// <param name="button"></param>
 void mouse_click(MouseButton const button = MouseButton::Left)
 {
 	INPUT inputs[2] = {};
@@ -1266,6 +1426,11 @@ void mouse_click(MouseButton const button = MouseButton::Left)
 	SendInput(2, inputs, sizeof(INPUT));
 }
 
+/// <summary>
+/// Scroll the mouse.
+/// </summary>
+/// <param name="y"></param>
+/// <param name="x"></param>
 void mouse_scroll(int const y, int const x)
 {
 	if (x == 0)
@@ -1297,6 +1462,10 @@ void mouse_scroll(int const y, int const x)
 	}
 }
 
+/// <summary>
+/// Presses a key down.
+/// </summary>
+/// <param name="key"></param>
 void key_down(WORD const key)
 {
 	INPUT inputs[1] = {};
@@ -1307,6 +1476,10 @@ void key_down(WORD const key)
 	SendInput(1, inputs, sizeof(INPUT));
 }
 
+/// <summary>
+/// Releases a key.
+/// </summary>
+/// <param name="key"></param>
 void key_up(WORD const key)
 {
 	INPUT inputs[1] = {};
@@ -1318,6 +1491,11 @@ void key_up(WORD const key)
 	SendInput(1, inputs, sizeof(INPUT));
 }
 
+/// <summary>
+/// Presses and releases a key.
+/// </summary>
+/// <param name="key"></param>
+/// <param name="shift"></param>
 void key_type(WORD const key, bool shift = false) {
 	INPUT inputs[4] = {};
 
@@ -1356,6 +1534,10 @@ void key_type(WORD const key, bool shift = false) {
 	}
 }
 
+/// <summary>
+/// Presses and releases a char.
+/// </summary>
+/// <param name="c"></param>
 void key_type_char(char const c)
 {
 	SHORT vk = VkKeyScan(c);
@@ -1369,6 +1551,11 @@ void key_type_char(char const c)
 	key_type(vkCode, shift);
 }
 
+/// <summary>
+/// Types a whole string.
+/// </summary>
+/// <param name="text"></param>
+/// <param name="delay"></param>
 void key_type_string(std::string const& text, DWORD const delay)
 {
 	for (char c : text)
