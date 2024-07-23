@@ -322,6 +322,45 @@ public:
 
 using Value = std::variant<nullptr_t, Image, Match, MatchCollection, CHISL_STRING, int, CHISL_FLOAT>;
 
+CHISL_STRING value_to_string(Value const& value)
+{
+	if (std::holds_alternative<CHISL_STRING>(value))
+	{
+		return std::get<CHISL_STRING>(value);
+	}
+	else if (std::holds_alternative<Image>(value))
+	{
+		return std::get<Image>(value).to_string();
+	}
+	else if (std::holds_alternative<Match>(value))
+	{
+		return std::get<Match>(value).to_string();
+	}
+	else if (std::holds_alternative<MatchCollection>(value))
+	{
+		MatchCollection collection = std::get<MatchCollection>(value);
+		size_t count = collection.count();
+		CHISL_STRING output = "MatchCollection:";
+		for (size_t i = 0; i < count; i++)
+		{
+			output += collection.get(i).to_string();
+		}
+		return output;
+	}
+	else if (std::holds_alternative<int>(value))
+	{
+		return std::to_string(std::get<int>(value));
+	}
+	else if (std::holds_alternative<CHISL_FLOAT>(value))
+	{
+		return std::to_string(std::get<CHISL_FLOAT>(value));
+	}
+	else
+	{
+		return "";
+	}
+}
+
 /// <summary>
 /// Converts the given Value into a number, if able.
 /// </summary>
@@ -1819,7 +1858,7 @@ public:
 			change_arg_to_int(1);
 			break;
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
-			change_arg_to_double(2);
+			change_arg_to_int(2);
 			break;
 		}
 	}
@@ -2962,13 +3001,23 @@ public:
 			{
 				// type key
 				WORD key = string_to_key(str);
-				if (!key)
+
+				if (key)
 				{
-					command.fail("Invalid key.");
+					key_type(key);
 					break;
 				}
 
-				key_type(key);
+				Value value = m_scope.get(str);
+
+				if (!std::holds_alternative<std::nullptr_t>(value))
+				{
+					key_type_string(value_to_string(value), DEFAULT_TYPING_DELAY);
+					break;
+				}
+
+				command.fail("Invalid key.");
+				break;
 			}
 
 			break;
@@ -2983,20 +3032,32 @@ public:
 			if (str.starts_with("\"") && str.ends_with("\""))
 			{
 				// type string
-				key_type_string(str, delay);
+				key_type_string(str.substr(1, str.length() - 2), delay);
 			}
 			else
 			{
 				// type key
 				WORD key = string_to_key(str);
-				if (!key)
+
+				if (key)
 				{
-					command.fail("Invalid key.");
+					key_type(key);
 					break;
 				}
 
-				key_type(key);
+				Value value = m_scope.get(str);
+
+				if (!std::holds_alternative<std::nullptr_t>(value))
+				{
+					key_type_string(value_to_string(value), delay);
+					break;
+				}
+
+				command.fail("Invalid key.");
+				break;
 			}
+
+			break;
 
 			break;
 		}
