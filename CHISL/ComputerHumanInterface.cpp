@@ -16,8 +16,9 @@
 typedef std::string CHISL_STRING;
 typedef double CHISL_FLOAT;
 typedef long CHISL_INT;
+typedef cv::Mat CHISL_MATRIX;
 
-constexpr double DEFAULT_THRESHOLD = 0.5f;
+constexpr CHISL_FLOAT DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
 
 /// <summary>
@@ -25,7 +26,7 @@ constexpr DWORD DEFAULT_TYPING_DELAY = 100;
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-std::string string_to_lower(std::string str)
+CHISL_STRING string_to_lower(CHISL_STRING str)
 {
 	std::transform(str.begin(), str.end(), str.begin(),
 		[](unsigned char c) { return std::tolower(c); });
@@ -38,9 +39,9 @@ std::string string_to_lower(std::string str)
 /// <param name="str"></param>
 /// <param name="re"></param>
 /// <returns></returns>
-std::vector<std::string> string_split(std::string const& str, std::regex const& re)
+std::vector<CHISL_STRING> string_split(CHISL_STRING const& str, std::regex const& re)
 {
-	std::vector<std::string> tokens;
+	std::vector<CHISL_STRING> tokens;
 
 	auto it = std::sregex_iterator(str.begin(), str.end(), re);
 	auto end = std::sregex_iterator();
@@ -58,7 +59,7 @@ std::vector<std::string> string_split(std::string const& str, std::regex const& 
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-std::string string_trim(const std::string& str) {
+CHISL_STRING string_trim(const CHISL_STRING& str) {
 	auto start = std::find_if_not(str.begin(), str.end(), [](int ch) {
 		return std::isspace(ch);
 		});
@@ -67,7 +68,7 @@ std::string string_trim(const std::string& str) {
 		return std::isspace(ch);
 		}).base();
 
-		return (start < end ? std::string(start, end) : std::string());
+		return (start < end ? CHISL_STRING(start, end) : CHISL_STRING());
 }
 
 /// <summary>
@@ -75,8 +76,8 @@ std::string string_trim(const std::string& str) {
 /// </summary>
 /// <param name="keyString"></param>
 /// <returns></returns>
-WORD string_to_key(const std::string& keyString) {
-	static const std::unordered_map<std::string, WORD> keyMap = {
+WORD string_to_key(const CHISL_STRING& keyString) {
+	static const std::unordered_map<CHISL_STRING, WORD> keyMap = {
 		{"escape", VK_ESCAPE},
 		{"space", VK_SPACE},
 		{" ", VK_SPACE},
@@ -161,7 +162,7 @@ bool check_for_key_input(WORD const key)
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-bool can_parse_int(const std::string& str)
+bool can_parse_int(const CHISL_STRING& str)
 {
 	std::regex re(R"(^[-+]?\d+$)");
 	return std::regex_match(str, re);
@@ -172,7 +173,7 @@ bool can_parse_int(const std::string& str)
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-int parse_int(const std::string& str) {
+int parse_int(const CHISL_STRING& str) {
 	int result = 0;
 
 	// Check if the string matches the regex
@@ -199,7 +200,7 @@ int parse_int(const std::string& str) {
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-bool can_parse_double(const std::string& str)
+bool can_parse_double(const CHISL_STRING& str)
 {
 	std::regex re(R"(^[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?$)");
 	return std::regex_match(str, re);
@@ -210,8 +211,8 @@ bool can_parse_double(const std::string& str)
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-double parse_double(const std::string& str) {
-	double result = 0;
+CHISL_FLOAT parse_double(const CHISL_STRING& str) {
+	CHISL_FLOAT result = 0;
 
 	// Check if the string matches the regex
 	if (can_parse_double(str))
@@ -238,30 +239,30 @@ double parse_double(const std::string& str) {
 class Image
 {
 private:
-	cv::Mat m_image;
+	CHISL_MATRIX m_image;
 
 public:
 	Image() = default;
-	Image(cv::Mat const image)
+	Image(CHISL_MATRIX const image)
 		: m_image(image)
 	{}
-	Image(cv::Mat const image, cv::Point const point)
+	Image(CHISL_MATRIX const image, cv::Point const point)
 		: m_image(image)
 	{}
 
-	cv::Mat& get() { return m_image; }
-	cv::Mat const& get() const { return m_image; }
+	CHISL_MATRIX& get() { return m_image; }
+	CHISL_MATRIX const& get() const { return m_image; }
 	bool empty() const { return m_image.empty(); }
 	int get_width() const { return m_image.cols; }
 	int get_height() const { return m_image.rows; }
 	cv::Point get_size() const { return cv::Point{ get_width(), get_height() }; }
 	Image clone() const
 	{
-		cv::Mat mat;
+		CHISL_MATRIX mat;
 		m_image.copyTo(mat);
 		return Image(mat);
 	}
-	std::string to_string() const
+	CHISL_STRING to_string() const
 	{
 		if (m_image.empty()) return "Image(empty)";
 
@@ -287,7 +288,7 @@ public:
 	cv::Point get_point() const { return m_point; }
 	cv::Point get_center() const { return m_point + m_size / 2; }
 	bool empty() const { return !m_size.x && !m_size.y; }
-	std::string to_string() const { return std::format("Match({}, {}, {}, {})", m_point.x, m_point.y, m_size.x, m_size.y); }
+	CHISL_STRING to_string() const { return std::format("Match({}, {}, {}, {})", m_point.x, m_point.y, m_size.x, m_size.y); }
 };
 
 /// <summary>
@@ -318,38 +319,38 @@ public:
 	bool empty() const { return m_matches.empty(); }
 };
 
-using Value = std::variant<nullptr_t, Image, Match, MatchCollection, std::string, int, double>;
+using Value = std::variant<nullptr_t, Image, Match, MatchCollection, CHISL_STRING, int, CHISL_FLOAT>;
 
 /// <summary>
 /// Converts the given Value into a number, if able.
 /// </summary>
 /// <param name="value"></param>
 /// <returns></returns>
-double value_to_number(Value const& value)
+CHISL_FLOAT value_to_number(Value const& value)
 {
-	if (std::holds_alternative<std::string>(value))
+	if (std::holds_alternative<CHISL_STRING>(value))
 	{
-		return parse_double(std::get<std::string>(value));
+		return parse_double(std::get<CHISL_STRING>(value));
 	}
 	else if (std::holds_alternative<Image>(value))
 	{
-		return static_cast<double>(!std::get<Image>(value).empty());
+		return static_cast<CHISL_FLOAT>(!std::get<Image>(value).empty());
 	}
 	else if (std::holds_alternative<Match>(value))
 	{
-		return static_cast<double>(!std::get<Match>(value).empty());
+		return static_cast<CHISL_FLOAT>(!std::get<Match>(value).empty());
 	}
 	else if (std::holds_alternative<MatchCollection>(value))
 	{
-		return static_cast<double>(!std::get<MatchCollection>(value).empty());
+		return static_cast<CHISL_FLOAT>(!std::get<MatchCollection>(value).empty());
 	}
 	else if (std::holds_alternative<int>(value))
 	{
-		return static_cast<double>(std::get<int>(value));
+		return static_cast<CHISL_FLOAT>(std::get<int>(value));
 	}
-	else if (std::holds_alternative<double>(value))
+	else if (std::holds_alternative<CHISL_FLOAT>(value))
 	{
-		return std::get<double>(value);
+		return std::get<CHISL_FLOAT>(value);
 	}
 
 	// unable to convert type
@@ -365,18 +366,18 @@ private:
 	/// <summary>
 	/// Holds values that can be updated or used by the script.
 	/// </summary>
-	std::unordered_map<std::string, Value> m_variables;
+	std::unordered_map<CHISL_STRING, Value> m_variables;
 
 public:
 	Scope() = default;
 	~Scope() = default;
 
-	void set(std::string const& name, Value const value)
+	void set(CHISL_STRING const& name, Value const value)
 	{
 		m_variables[name] = value;
 	}
 
-	Value get(std::string const& name) const
+	Value get(CHISL_STRING const& name) const
 	{
 		auto found = m_variables.find(name);
 
@@ -388,7 +389,7 @@ public:
 		return found->second;
 	}
 
-	void unset(std::string const& name)
+	void unset(CHISL_STRING const& name)
 	{
 		m_variables.erase(name);
 	}
@@ -509,9 +510,9 @@ int token_get_precedence(ChislToken const token)
 /// </summary>
 /// <param name="str"></param>
 /// <returns></returns>
-ChislToken parse_token_type(std::string const& str)
+ChislToken parse_token_type(CHISL_STRING const& str)
 {
-	static std::unordered_map<std::string, ChislToken> types =
+	static std::unordered_map<CHISL_STRING, ChislToken> types =
 	{
 		{ "#", CHISL_PUNCT_COMMENT },
 		{ ".", CHISL_PUNCT_COMMIT },
@@ -581,9 +582,9 @@ ChislToken parse_token_type(std::string const& str)
 /// </summary>
 /// <param name="token"></param>
 /// <returns></returns>
-std::string string_token_type(ChislToken const token)
+CHISL_STRING string_token_type(ChislToken const token)
 {
-	static std::unordered_map<ChislToken, std::string> tokenStrings =
+	static std::unordered_map<ChislToken, CHISL_STRING> tokenStrings =
 	{
 		{ CHISL_PUNCT_COMMENT, "#" },
 		{ CHISL_PUNCT_COMMIT, "." },
@@ -669,7 +670,7 @@ private:
 
 public:
 	Token() = default;
-	Token(ChislToken const token, std::string const& data)
+	Token(ChislToken const token, CHISL_STRING const& data)
 		: m_token(token), m_value(data) {}
 
 	ChislToken get_token() const { return m_token; }
@@ -687,11 +688,11 @@ public:
 	}
 	template<typename T>
 	bool is() const { return std::holds_alternative<T>(m_value); }
-	std::string to_string() const
+	CHISL_STRING to_string() const
 	{
-		if (m_token == CHISL_GENERIC && std::holds_alternative<std::string>(m_value))
+		if (m_token == CHISL_GENERIC && std::holds_alternative<CHISL_STRING>(m_value))
 		{
-			return std::get<std::string>(m_value);
+			return std::get<CHISL_STRING>(m_value);
 		}
 		else
 		{
@@ -699,7 +700,7 @@ public:
 		}
 	}
 
-	static Token parse_token(std::string const& str)
+	static Token parse_token(CHISL_STRING const& str)
 	{
 		ChislToken tokenType = parse_token_type(str);
 
@@ -712,13 +713,13 @@ public:
 	}
 };
 
-cv::Mat hwnd2mat(HWND hwnd)
+CHISL_MATRIX hwnd2mat(HWND hwnd)
 {
 	HDC hwindowDC, hwindowCompatibleDC;
 
 	int height, width, srcheight, srcwidth;
 	HBITMAP hbwindow;
-	cv::Mat src;
+	CHISL_MATRIX src;
 	BITMAPINFOHEADER  bi;
 
 	SetProcessDPIAware();
@@ -771,7 +772,7 @@ cv::Mat hwnd2mat(HWND hwnd)
 /// </summary>
 /// <param name="path"></param>
 /// <returns></returns>
-std::optional<std::string> text_read(std::string const& path)
+std::optional<CHISL_STRING> text_read(CHISL_STRING const& path)
 {
 	try
 	{
@@ -797,7 +798,7 @@ std::optional<std::string> text_read(std::string const& path)
 /// </summary>
 /// <param name="path"></param>
 /// <returns></returns>
-std::optional<Image> image_read(std::string const& path)
+std::optional<Image> image_read(CHISL_STRING const& path)
 {
 	if (!std::filesystem::exists(path))
 	{
@@ -806,7 +807,7 @@ std::optional<Image> image_read(std::string const& path)
 	}
 
 	try {
-		cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
+		CHISL_MATRIX image = cv::imread(path, cv::IMREAD_COLOR);
 		if (image.empty()) {
 			std::cerr << "Failed to load image. " << path << std::endl;
 			return std::nullopt;
@@ -834,7 +835,7 @@ std::optional<Image> image_read(std::string const& path)
 /// </summary>
 /// <param name="path"></param>
 /// <returns></returns>
-std::optional<Value> file_read(std::string const& path)
+std::optional<Value> file_read(CHISL_STRING const& path)
 {
 	if (path.ends_with(".txt"))
 	{
@@ -848,7 +849,7 @@ std::optional<Value> file_read(std::string const& path)
 	return std::nullopt;
 }
 
-void text_write(std::string const& path, std::string const& text)
+void text_write(CHISL_STRING const& path, CHISL_STRING const& text)
 {
 	try
 	{
@@ -875,7 +876,7 @@ void text_write(std::string const& path, std::string const& text)
 /// </summary>
 /// <param name="path"></param>
 /// <param name="image"></param>
-void image_write(std::string const& path, Image const& image)
+void image_write(CHISL_STRING const& path, Image const& image)
 {
 	cv::imwrite(path, image.get());
 }
@@ -885,11 +886,11 @@ void image_write(std::string const& path, Image const& image)
 /// </summary>
 /// <param name="path"></param>
 /// <param name="value"></param>
-void file_write(std::string const& path, Value const& value)
+void file_write(CHISL_STRING const& path, Value const& value)
 {
-	if (std::holds_alternative<std::string>(value))
+	if (std::holds_alternative<CHISL_STRING>(value))
 	{
-		text_write(path, std::get<std::string>(value));
+		text_write(path, std::get<CHISL_STRING>(value));
 	}
 	else if (std::holds_alternative<Image>(value))
 	{
@@ -908,8 +909,8 @@ void file_write(std::string const& path, Value const& value)
 Image screenshot()
 {
 	HWND hwnd = GetDesktopWindow();
-	cv::Mat screen = hwnd2mat(hwnd);
-	cv::Mat screenConverted;
+	CHISL_MATRIX screen = hwnd2mat(hwnd);
+	CHISL_MATRIX screenConverted;
 	cv::cvtColor(screen, screenConverted, cv::COLOR_BGRA2BGR);
 	return Image(screenConverted);
 }
@@ -934,9 +935,9 @@ Image crop(Image& image, int const x, int const y, int const w, int const h)
 /// </summary>
 /// <param name="image"></param>
 /// <returns></returns>
-cv::Mat grayscale(const cv::Mat& image)
+CHISL_MATRIX grayscale(const CHISL_MATRIX& image)
 {
-	cv::Mat gray;
+	CHISL_MATRIX gray;
 	cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
 	return gray;
 }
@@ -947,9 +948,9 @@ cv::Mat grayscale(const cv::Mat& image)
 /// <param name="image"></param>
 /// <param name="scale"></param>
 /// <returns></returns>
-cv::Mat resize(const cv::Mat& image, double const scale)
+CHISL_MATRIX resize(const CHISL_MATRIX& image, CHISL_FLOAT const scale)
 {
-	cv::Mat resized;
+	CHISL_MATRIX resized;
 	cv::resize(image, resized, cv::Size(), scale, scale, cv::INTER_LINEAR);
 	return resized;
 }
@@ -961,7 +962,7 @@ cv::Mat resize(const cv::Mat& image, double const scale)
 /// <returns></returns>
 Image adjust_image_for_reading(Image const& image)
 {
-	cv::Mat mat = image.get();
+	CHISL_MATRIX mat = image.get();
 
 	mat = grayscale(mat);
 
@@ -977,13 +978,13 @@ Image adjust_image_for_reading(Image const& image)
 /// <param name="templateImage"></param>
 /// <param name="threshold"></param>
 /// <returns></returns>
-std::optional<Match> find(Image const& image, Image& templateImage, double const threshold)
+std::optional<Match> find(Image const& image, Image& templateImage, CHISL_FLOAT const threshold)
 {
 	try {
-		cv::Mat result;
+		CHISL_MATRIX result;
 		cv::matchTemplate(image.get(), templateImage.get(), result, cv::TM_CCOEFF_NORMED);
 
-		double minVal, maxVal;
+		CHISL_FLOAT minVal, maxVal;
 		cv::Point minLoc, maxLoc;
 		cv::minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
 
@@ -1016,10 +1017,10 @@ std::optional<Match> find(Image const& image, Image& templateImage, double const
 /// <param name="level"></param>
 /// <param name="threshold"></param>
 /// <returns></returns>
-std::optional<Match> find_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+std::optional<Match> find_text(Image const& image, CHISL_STRING const& text, tesseract::PageIteratorLevel const level, CHISL_FLOAT const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
-	cv::Mat src = srcImage.get();
+	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
 	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
@@ -1038,12 +1039,12 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 	ocr.Recognize(nullptr);
 	tesseract::ResultIterator* ri = ocr.GetIterator();
 
-	double targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+	CHISL_FLOAT targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
-	double scaleX = static_cast<double>(image.get_width()) / src.cols;
-	double scaleY = static_cast<double>(image.get_height()) / src.rows;
+	CHISL_FLOAT scaleX = static_cast<CHISL_FLOAT>(image.get_width()) / src.cols;
+	CHISL_FLOAT scaleY = static_cast<CHISL_FLOAT>(image.get_height()) / src.rows;
 
-	std::string searchText = string_to_lower(text);
+	CHISL_STRING searchText = string_to_lower(text);
 
 	if (ri != 0) {
 		do {
@@ -1052,7 +1053,7 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 			if (word != 0 && conf > 100.0 * threshold) {
 				int x1, y1, x2, y2;
 				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
-				std::string extractedWord(word);
+				CHISL_STRING extractedWord(word);
 				extractedWord = string_trim(extractedWord);
 				extractedWord = string_to_lower(extractedWord);
 				//std::cout << "Found: " << extractedWord << std::endl;
@@ -1088,10 +1089,10 @@ std::optional<Match> find_text(Image const& image, std::string const& text, tess
 /// <param name="templateImage"></param>
 /// <param name="threshold"></param>
 /// <returns></returns>
-std::optional<MatchCollection> find_all(Image const& image, Image& templateImage, double const threshold)
+std::optional<MatchCollection> find_all(Image const& image, Image& templateImage, CHISL_FLOAT const threshold)
 {
 	try {
-		cv::Mat result;
+		CHISL_MATRIX result;
 		cv::matchTemplate(image.get(), templateImage.get(), result, cv::TM_CCOEFF_NORMED);
 
 		std::vector<cv::Point> points;
@@ -1101,7 +1102,7 @@ std::optional<MatchCollection> find_all(Image const& image, Image& templateImage
 
 		for (int y = 0; y < result.rows; ++y) {
 			for (int x = 0; x < result.cols; ++x) {
-				double value = result.at<float>(y, x);
+				CHISL_FLOAT value = result.at<float>(y, x);
 				if (value >= threshold) {
 					cv::Point point(x, y);
 					points.push_back(point);
@@ -1133,10 +1134,10 @@ std::optional<MatchCollection> find_all(Image const& image, Image& templateImage
 /// <param name="level"></param>
 /// <param name="threshold"></param>
 /// <returns></returns>
-std::optional<MatchCollection> find_all_text(Image const& image, std::string const& text, tesseract::PageIteratorLevel const level, double const threshold)
+std::optional<MatchCollection> find_all_text(Image const& image, CHISL_STRING const& text, tesseract::PageIteratorLevel const level, CHISL_FLOAT const threshold)
 {
 	Image srcImage = adjust_image_for_reading(image);
-	cv::Mat src = srcImage.get();
+	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
 	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
@@ -1157,10 +1158,10 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 
 	std::vector<Match> matches;
 
-	double targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
+	CHISL_FLOAT targetX = -1, targetY = -1, targetWidth = -1, targetHeight = -1;
 
-	double scaleX = static_cast<double>(image.get_width()) / src.cols;
-	double scaleY = static_cast<double>(image.get_height()) / src.rows;
+	CHISL_FLOAT scaleX = static_cast<CHISL_FLOAT>(image.get_width()) / src.cols;
+	CHISL_FLOAT scaleY = static_cast<CHISL_FLOAT>(image.get_height()) / src.rows;
 
 	if (ri != 0) {
 		do {
@@ -1169,7 +1170,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 			if (word != 0 && conf > 100.0 * threshold) {
 				int x1, y1, x2, y2;
 				ri->BoundingBox(level, &x1, &y1, &x2, &y2);
-				std::string extractedWord(word);
+				CHISL_STRING extractedWord(word);
 				if (extractedWord == text) {
 					targetX = x1 * scaleX;
 					targetY = y1 * scaleY;
@@ -1200,10 +1201,10 @@ std::optional<MatchCollection> find_all_text(Image const& image, std::string con
 /// </summary>
 /// <param name="image"></param>
 /// <returns></returns>
-std::string read_from_image(Image const& image)
+CHISL_STRING read_from_image(Image const& image)
 {
 	Image srcImage = adjust_image_for_reading(image);
-	cv::Mat src = srcImage.get();
+	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
 	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
@@ -1218,7 +1219,7 @@ std::string read_from_image(Image const& image)
 	// process text from image
 	ocr.SetImage(src.data, src.cols, src.rows, 1, static_cast<int>(src.step));
 	char* outText = ocr.GetUTF8Text();
-	std::string outString = outText;
+	CHISL_STRING outString = outText;
 	delete[] outText;
 
 	ocr.End();
@@ -1251,9 +1252,9 @@ enum class MouseButton
 /// <param name="value"></param>
 void print(Value const& value)
 {
-	if (std::holds_alternative<std::string>(value))
+	if (std::holds_alternative<CHISL_STRING>(value))
 	{
-		std::cout << std::get<std::string>(value) << std::endl;
+		std::cout << std::get<CHISL_STRING>(value) << std::endl;
 	}
 	else if (std::holds_alternative<Image>(value))
 	{
@@ -1277,9 +1278,9 @@ void print(Value const& value)
 	{
 		std::cout << std::get<int>(value) << std::endl;
 	}
-	else if (std::holds_alternative<double>(value))
+	else if (std::holds_alternative<CHISL_FLOAT>(value))
 	{
-		std::cout << std::get<double>(value) << std::endl;
+		std::cout << std::get<CHISL_FLOAT>(value) << std::endl;
 	}
 	else
 	{
@@ -1556,7 +1557,7 @@ void key_type_char(char const c)
 /// </summary>
 /// <param name="text"></param>
 /// <param name="delay"></param>
-void key_type_string(std::string const& text, DWORD const delay)
+void key_type_string(CHISL_STRING const& text, DWORD const delay)
 {
 	for (char c : text)
 	{
@@ -1645,7 +1646,7 @@ public:
 	template<typename T>
 	T get_variable(size_t const index, Scope const& scope) const
 	{
-		Value value = scope.get(m_args.at(index).get<std::string>());
+		Value value = scope.get(m_args.at(index).get<CHISL_STRING>());
 
 		if (!std::holds_alternative<T>(value))
 		{
@@ -1655,9 +1656,9 @@ public:
 		return std::get<T>(value);
 	}
 
-	std::string get_text(size_t const index, Scope const& scope) const
+	CHISL_STRING get_text(size_t const index, Scope const& scope) const
 	{
-		std::string text = get_arg<std::string>(index);
+		CHISL_STRING text = get_arg<CHISL_STRING>(index);
 		if (text.starts_with("\"") && text.ends_with("\""))
 		{
 			return text.substr(1, text.length() - 2);
@@ -1665,9 +1666,9 @@ public:
 		else
 		{
 			Value value = scope.get(text);
-			if (std::holds_alternative<std::string>(value))
+			if (std::holds_alternative<CHISL_STRING>(value))
 			{
-				return std::get<std::string>(value);
+				return std::get<CHISL_STRING>(value);
 			}
 		}
 
@@ -1822,14 +1823,14 @@ public:
 		}
 	}
 
-	void fail(std::string const& message) const
+	void fail(CHISL_STRING const& message) const
 	{
 		std::cerr << "\"" << string_token_type(m_token) << "\" failed: " << message << std::endl;
 	}
 
-	std::string to_string() const
+	CHISL_STRING to_string() const
 	{
-		std::string args = "";
+		CHISL_STRING args = "";
 
 		for (auto const& arg : m_args)
 		{
@@ -1846,14 +1847,14 @@ private:
 	{
 		if (index >= m_args.size()) return;
 
-		m_args.at(index).set_value(parse_int(m_args.at(index).get<std::string>()));
+		m_args.at(index).set_value(parse_int(m_args.at(index).get<CHISL_STRING>()));
 	}
 
 	void change_arg_to_double(size_t const index)
 	{
 		if (index >= m_args.size()) return;
 
-		m_args.at(index).set_value(parse_double(m_args.at(index).get<std::string>()));
+		m_args.at(index).set_value(parse_double(m_args.at(index).get<CHISL_STRING>()));
 	}
 
 	template<typename T>
@@ -1870,34 +1871,34 @@ private:
 		return true;
 	}
 
-	bool verify_keyword(size_t const index, std::string const& word) const
+	bool verify_keyword(size_t const index, CHISL_STRING const& word) const
 	{
-		if (!has_arg<std::string>(index, word))
+		if (!has_arg<CHISL_STRING>(index, word))
 		{
-			fail(std::string("Missing keyword ").append(word).append(" at index ").append(std::to_string(index)).append("."));
+			fail(CHISL_STRING("Missing keyword ").append(word).append(" at index ").append(std::to_string(index)).append("."));
 			return false;
 		}
 		return true;
 	}
 
-	bool verify_keyword(size_t const index, std::vector<std::string> const& words) const
+	bool verify_keyword(size_t const index, std::vector<CHISL_STRING> const& words) const
 	{
 		for (auto const& word : words)
 		{
-			if (has_arg<std::string>(index, word))
+			if (has_arg<CHISL_STRING>(index, word))
 			{
 				return true;
 			}
 		}
 
-		std::string keywords = "";
+		CHISL_STRING keywords = "";
 		for (auto const& word : words)
 		{
 			keywords.append(word).append("/");
 		}
 		keywords = keywords.substr(0, keywords.size() - 1);
 
-		fail(std::string("Missing keyword ").append(keywords).append(" at index ").append(std::to_string(index)).append("."));
+		fail(CHISL_STRING("Missing keyword ").append(keywords).append(" at index ").append(std::to_string(index)).append("."));
 		return false;
 	}
 
@@ -1923,9 +1924,9 @@ private:
 		return true;
 	}
 
-	bool fix_token(ChislToken const token, size_t const index, std::string const& value)
+	bool fix_token(ChislToken const token, size_t const index, CHISL_STRING const& value)
 	{
-		if (has_arg<std::string>(index, value))
+		if (has_arg<CHISL_STRING>(index, value))
 		{
 			m_token = token;
 			return true;
@@ -1957,11 +1958,11 @@ private:
 /// </summary>
 /// <param name="str">The string to parse.</param>
 /// <returns>A list of Tokens.</returns>
-std::vector<Token> tokenize(std::string const& str)
+std::vector<Token> tokenize(CHISL_STRING const& str)
 {
 	// split into string tokens
 	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
-	std::vector<std::string> strTokens = string_split(str, re);
+	std::vector<CHISL_STRING> strTokens = string_split(str, re);
 
 	// parse into tokens
 	std::vector<Token> tokens;
@@ -2162,18 +2163,18 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 class Program
 {
 private:
-	std::string m_path;
+	CHISL_STRING m_path;
 	std::vector<Command> m_commands;
-	std::unordered_map<std::string, size_t> m_labels;
+	std::unordered_map<CHISL_STRING, size_t> m_labels;
 	size_t m_index;
 	Scope m_scope;
 
 public:
-	Program(std::string const& path)
+	Program(CHISL_STRING const& path)
 		: m_path(path), m_commands(), m_labels(), m_index(), m_scope()
 	{
 		// convert to commands
-		std::optional<std::string> text = text_read(path);
+		std::optional<CHISL_STRING> text = text_read(path);
 		if (!text.has_value()) return;
 		std::vector<Token> tokens = tokenize(text.value());
 		m_commands = commandize(tokens);
@@ -2185,7 +2186,7 @@ public:
 
 			if (command.get_token() == CHISL_KEYWORD_LABEL)
 			{
-				m_labels.emplace(command.get_arg<std::string>(0), i);
+				m_labels.emplace(command.get_arg<CHISL_STRING>(0), i);
 			}
 		}
 	}
@@ -2226,7 +2227,7 @@ public:
 		if (tokens.empty()) return nullptr;
 
 		// assume in postfix notation
-		std::vector<double> operands;
+		std::vector<CHISL_FLOAT> operands;
 
 		for (auto const& token : tokens)
 		{
@@ -2236,9 +2237,9 @@ public:
 			{
 				// operator
 				// all operators are left precedence and 1 args as of right now, and use doubles
-				double right = operands.back();
+				CHISL_FLOAT right = operands.back();
 				operands.pop_back();
-				double left = operands.back();
+				CHISL_FLOAT left = operands.back();
 				operands.pop_back();
 
 				switch (token.get_token())
@@ -2288,10 +2289,10 @@ public:
 				// operand
 
 				// convert to number somehow
-				if (token.is<std::string>())
+				if (token.is<CHISL_STRING>())
 				{
 					// if can parse, parse. Otherwise get variable
-					std::string str = token.get<std::string>();
+					CHISL_STRING str = token.get<CHISL_STRING>();
 					if (can_parse_double(str))
 					{
 						operands.push_back(parse_double(str));
@@ -2330,27 +2331,27 @@ public:
 		{
 			// evaluate the arguments
 			Value value = evaluate(command.get_args(2));
-			m_scope.set(command.get_arg<std::string>(0), value);
+			m_scope.set(command.get_arg<CHISL_STRING>(0), value);
 			break;
 		}
 		case CHISL_KEYWORD_LOAD:
 		{
-			std::optional<Value> value = file_read(command.get_arg<std::string>(2));
-			if (value.has_value()) m_scope.set(command.get_arg<std::string>(0), value.value());
+			std::optional<Value> value = file_read(command.get_arg<CHISL_STRING>(2));
+			if (value.has_value()) m_scope.set(command.get_arg<CHISL_STRING>(0), value.value());
 			break;
 		}
 		case CHISL_KEYWORD_SAVE:
 		{
-			Value value = m_scope.get(command.get_arg<std::string>(0));
-			file_write(command.get_arg<std::string>(2), value);
+			Value value = m_scope.get(command.get_arg<CHISL_STRING>(0));
+			file_write(command.get_arg<CHISL_STRING>(2), value);
 			break;
 		}
 		case CHISL_KEYWORD_DELETE:
-			m_scope.unset(command.get_arg<std::string>(0));
+			m_scope.unset(command.get_arg<CHISL_STRING>(0));
 			break;
 		case CHISL_KEYWORD_COPY:
 		{
-			Value value = m_scope.get(command.get_arg<std::string>(0));
+			Value value = m_scope.get(command.get_arg<CHISL_STRING>(0));
 
 			// if image, copy differently
 			if (std::holds_alternative<Image>(value))
@@ -2358,7 +2359,7 @@ public:
 				value = std::get<Image>(value).clone();
 			}
 
-			m_scope.set(command.get_arg<std::string>(2), value);
+			m_scope.set(command.get_arg<CHISL_STRING>(2), value);
 			break;
 		}
 		case CHISL_KEYWORD_GET:
@@ -2369,13 +2370,13 @@ public:
 			// get the index
 			Value indexValue = evaluate(command.get_args(4));
 
-			if (!std::holds_alternative<double>(indexValue))
+			if (!std::holds_alternative<CHISL_FLOAT>(indexValue))
 			{
 				command.fail("Invalid index.");
 				break;
 			}
 
-			long index = static_cast<long>(std::get<double>(indexValue));
+			long index = static_cast<long>(std::get<CHISL_FLOAT>(indexValue));
 
 			if (index < 0 || index >= collection.count())
 			{
@@ -2383,7 +2384,7 @@ public:
 				break;
 			}
 
-			std::string name = command.get_arg<std::string>(0);
+			CHISL_STRING name = command.get_arg<CHISL_STRING>(0);
 
 			Value value = collection.get(index);
 			m_scope.set(name, value);
@@ -2395,7 +2396,7 @@ public:
 			// get the collection
 			MatchCollection collection = command.get_variable<MatchCollection>(2, m_scope);
 
-			std::string name = command.get_arg<std::string>(0);
+			CHISL_STRING name = command.get_arg<CHISL_STRING>(0);
 
 			int count = static_cast<int>(collection.count());
 			m_scope.set(name, count);
@@ -2405,7 +2406,7 @@ public:
 		case CHISL_KEYWORD_CAPTURE:
 		{
 			Image image = screenshot();
-			m_scope.set(command.get_arg<std::string>(0), image);
+			m_scope.set(command.get_arg<CHISL_STRING>(0), image);
 			break;
 		}
 		case CHISL_KEYWORD_CAPTURE_AT:
@@ -2416,12 +2417,12 @@ public:
 				command.get_arg<int>(3),
 				command.get_arg<int>(4),
 				command.get_arg<int>(5));
-			m_scope.set(command.get_arg<std::string>(0), image);
+			m_scope.set(command.get_arg<CHISL_STRING>(0), image);
 			break;
 		}
 		case CHISL_KEYWORD_CROP:
 		{
-			std::string name = command.get_arg<std::string>(0);
+			CHISL_STRING name = command.get_arg<CHISL_STRING>(0);
 			std::optional<Image> image = command.get_variable<Image>(0, m_scope);
 			if (!image.has_value()) break;
 
@@ -2452,11 +2453,11 @@ public:
 			std::optional<Match> found = find(image, templateImage, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(0), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(0), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(0), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(0), nullptr);
 			}
 
 			break;
@@ -2477,15 +2478,15 @@ public:
 				break;
 			}
 
-			double threshold = command.get_arg<double>(6);
+			CHISL_FLOAT threshold = command.get_arg<CHISL_FLOAT>(6);
 			std::optional<Match> found = find(image, templateImage, threshold);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(0), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(0), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(0), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(0), nullptr);
 			}
 
 			break;
@@ -2509,11 +2510,11 @@ public:
 			std::optional<MatchCollection> found = find_all(image, templateImage, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(0), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(0), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(0), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(0), nullptr);
 			}
 
 			break;
@@ -2534,22 +2535,22 @@ public:
 				break;
 			}
 
-			double threshold = command.get_arg<double>(7);
+			CHISL_FLOAT threshold = command.get_arg<CHISL_FLOAT>(7);
 			std::optional<MatchCollection> found = find_all(image, templateImage, threshold);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(0), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(0), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(0), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(0), nullptr);
 			}
 
 			break;
 		}
 		case CHISL_KEYWORD_FIND_TEXT:
 		{
-			std::string templateText = command.get_text(4, m_scope);
+			CHISL_STRING templateText = command.get_text(4, m_scope);
 
 			Image image = command.get_variable<Image>(6, m_scope);
 			if (image.get().empty())
@@ -2558,7 +2559,7 @@ public:
 				break;
 			}
 
-			std::string ril = command.get_arg<std::string>(1);
+			CHISL_STRING ril = command.get_arg<CHISL_STRING>(1);
 			tesseract::PageIteratorLevel pil;
 			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
 			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
@@ -2574,18 +2575,18 @@ public:
 			std::optional<Match> found = find_text(image, templateText, pil, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(2), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(2), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(2), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(2), nullptr);
 			}
 
 			break;
 		}
 		case CHISL_KEYWORD_FIND_TEXT_WITH:
 		{
-			std::string templateText = command.get_text(4, m_scope);
+			CHISL_STRING templateText = command.get_text(4, m_scope);
 
 			Image image = command.get_variable<Image>(6, m_scope);
 			if (image.get().empty())
@@ -2594,7 +2595,7 @@ public:
 				break;
 			}
 
-			std::string ril = command.get_arg<std::string>(1);
+			CHISL_STRING ril = command.get_arg<CHISL_STRING>(1);
 			tesseract::PageIteratorLevel pil;
 			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
 			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
@@ -2607,22 +2608,22 @@ public:
 				break;
 			}
 
-			double threshold = command.get_arg<double>(8);
+			CHISL_FLOAT threshold = command.get_arg<CHISL_FLOAT>(8);
 			std::optional<Match> found = find_text(image, templateText, pil, threshold);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(2), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(2), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(2), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(2), nullptr);
 			}
 
 			break;
 		}
 		case CHISL_KEYWORD_FIND_ALL_TEXT:
 		{
-			std::string templateText = command.get_text(5, m_scope);
+			CHISL_STRING templateText = command.get_text(5, m_scope);
 
 			Image image = command.get_variable<Image>(7, m_scope);
 			if (image.get().empty())
@@ -2631,7 +2632,7 @@ public:
 				break;
 			}
 
-			std::string ril = command.get_arg<std::string>(2);
+			CHISL_STRING ril = command.get_arg<CHISL_STRING>(2);
 			tesseract::PageIteratorLevel pil;
 			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
 			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
@@ -2647,18 +2648,18 @@ public:
 			std::optional<MatchCollection> found = find_all_text(image, templateText, pil, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(3), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(3), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(3), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(3), nullptr);
 			}
 
 			break;
 		}
 		case CHISL_KEYWORD_FIND_ALL_TEXT_WITH:
 		{
-			std::string templateText = command.get_text(5, m_scope);
+			CHISL_STRING templateText = command.get_text(5, m_scope);
 
 			Image image = command.get_variable<Image>(7, m_scope);
 			if (image.get().empty())
@@ -2667,7 +2668,7 @@ public:
 				break;
 			}
 
-			std::string ril = command.get_arg<std::string>(2);
+			CHISL_STRING ril = command.get_arg<CHISL_STRING>(2);
 			tesseract::PageIteratorLevel pil;
 			if (ril == "block") pil = tesseract::PageIteratorLevel::RIL_BLOCK;
 			else if (ril == "paragraph") pil = tesseract::PageIteratorLevel::RIL_PARA;
@@ -2680,15 +2681,15 @@ public:
 				break;
 			}
 
-			double threshold = command.get_arg<double>(9);
+			CHISL_FLOAT threshold = command.get_arg<CHISL_FLOAT>(9);
 			std::optional<MatchCollection> found = find_all_text(image, templateText, pil, threshold);
 			if (found.has_value())
 			{
-				m_scope.set(command.get_arg<std::string>(3), found.value());
+				m_scope.set(command.get_arg<CHISL_STRING>(3), found.value());
 			}
 			else
 			{
-				m_scope.set(command.get_arg<std::string>(3), nullptr);
+				m_scope.set(command.get_arg<CHISL_STRING>(3), nullptr);
 			}
 
 			break;
@@ -2702,9 +2703,9 @@ public:
 				break;
 			}
 
-			std::string text = read_from_image(image);
+			CHISL_STRING text = read_from_image(image);
 
-			std::string name = command.get_arg<std::string>(0);
+			CHISL_STRING name = command.get_arg<CHISL_STRING>(0);
 			m_scope.set(name, text);
 			break;
 		}
@@ -2733,7 +2734,7 @@ public:
 		case CHISL_KEYWORD_WAIT:
 		{
 			int time = command.get_arg<int>(0);
-			std::string type = command.get_arg<std::string>(1);
+			CHISL_STRING type = command.get_arg<CHISL_STRING>(1);
 
 			if (type == "ms")
 			{
@@ -2763,14 +2764,14 @@ public:
 			break;
 		case CHISL_KEYWORD_PRINT:
 		{
-			std::string arg = command.get_arg<std::string>(0);
+			CHISL_STRING arg = command.get_arg<CHISL_STRING>(0);
 			if (arg.starts_with("\"") && arg.ends_with("\""))
 			{
 				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
 			}
 			else
 			{
-				Value value = m_scope.get(command.get_arg<std::string>(0));
+				Value value = m_scope.get(command.get_arg<CHISL_STRING>(0));
 
 				print(value);
 			}
@@ -2778,14 +2779,14 @@ public:
 		}
 		case CHISL_KEYWORD_SHOW:
 		{
-			std::string arg = command.get_arg<std::string>(0);
+			CHISL_STRING arg = command.get_arg<CHISL_STRING>(0);
 			if (arg.starts_with("\"") && arg.ends_with("\""))
 			{
 				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
 			}
 			else
 			{
-				Value value = m_scope.get(command.get_arg<std::string>(0));
+				Value value = m_scope.get(command.get_arg<CHISL_STRING>(0));
 
 				show(value);
 			}
@@ -2812,7 +2813,7 @@ public:
 			break;
 		case CHISL_KEYWORD_MOUSE_PRESS:
 		{
-			std::string button = command.get_arg<std::string>(0);
+			CHISL_STRING button = command.get_arg<CHISL_STRING>(0);
 
 			if (button == "left")
 			{
@@ -2835,7 +2836,7 @@ public:
 		}
 		case CHISL_KEYWORD_MOUSE_RELEASE:
 		{
-			std::string button = command.get_arg<std::string>(0);
+			CHISL_STRING button = command.get_arg<CHISL_STRING>(0);
 
 			if (button == "left")
 			{
@@ -2858,7 +2859,7 @@ public:
 		}
 		case CHISL_KEYWORD_MOUSE_CLICK:
 		{
-			std::string button = command.get_arg<std::string>(0);
+			CHISL_STRING button = command.get_arg<CHISL_STRING>(0);
 
 			if (button == "left")
 			{
@@ -2881,7 +2882,7 @@ public:
 		}
 		case CHISL_KEYWORD_MOUSE_CLICK_TIMES:
 		{
-			std::string button = command.get_arg<std::string>(0);
+			CHISL_STRING button = command.get_arg<CHISL_STRING>(0);
 
 			int times = command.get_arg<int>(1);
 
@@ -2920,7 +2921,7 @@ public:
 		}
 		case CHISL_KEYWORD_KEY_PRESS:
 		{
-			std::string strKey = command.get_arg<std::string>(0);
+			CHISL_STRING strKey = command.get_arg<CHISL_STRING>(0);
 			WORD key = string_to_key(strKey);
 			if (!key)
 			{
@@ -2934,7 +2935,7 @@ public:
 		}
 		case CHISL_KEYWORD_KEY_RELEASE:
 		{
-			std::string strKey = command.get_arg<std::string>(0);
+			CHISL_STRING strKey = command.get_arg<CHISL_STRING>(0);
 			WORD key = string_to_key(strKey);
 			if (!key)
 			{
@@ -2948,7 +2949,7 @@ public:
 		}
 		case CHISL_KEYWORD_KEY_TYPE:
 		{
-			std::string str = command.get_arg<std::string>(0);
+			CHISL_STRING str = command.get_arg<CHISL_STRING>(0);
 
 			// if in quotes, type as string
 			if (str.starts_with("\"") && str.ends_with("\""))
@@ -2973,7 +2974,7 @@ public:
 		}
 		case CHISL_KEYWORD_KEY_TYPE_WITH_DELAY:
 		{
-			std::string str = command.get_arg<std::string>(0);
+			CHISL_STRING str = command.get_arg<CHISL_STRING>(0);
 
 			int delay = command.get_arg<int>(2);
 
@@ -3005,7 +3006,7 @@ public:
 		case CHISL_KEYWORD_GOTO:
 		{
 			// set working index to label position
-			std::string label = command.get_arg<std::string>(0);
+			CHISL_STRING label = command.get_arg<CHISL_STRING>(0);
 			goto_label(label);
 			break;
 		}
@@ -3014,12 +3015,12 @@ public:
 			// check condition
 			Value value = evaluate(command.get_args(2));
 
-			if (std::holds_alternative<double>(value))
+			if (std::holds_alternative<CHISL_FLOAT>(value))
 			{
-				if (std::get<double>(value))
+				if (std::get<CHISL_FLOAT>(value))
 				{
 					// set working index to label position
-					std::string label = command.get_arg<std::string>(0);
+					CHISL_STRING label = command.get_arg<CHISL_STRING>(0);
 					goto_label(label);
 				}
 			}
@@ -3055,7 +3056,7 @@ public:
 	}
 
 private:
-	void goto_label(std::string const& label)
+	void goto_label(CHISL_STRING const& label)
 	{
 		auto found = m_labels.find(label);
 		if (found == m_labels.end())
@@ -3083,7 +3084,7 @@ int main(int argc, char* argv[])
 		return 2;
 	}
 
-	if (!std::string(argv[1]).ends_with(".chisl"))
+	if (!CHISL_STRING(argv[1]).ends_with(".chisl"))
 	{
 		std::cerr << "Inputted path does not lead to a .chisl file.\n";
 		return 3;
