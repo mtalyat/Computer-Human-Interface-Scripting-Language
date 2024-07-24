@@ -50,6 +50,10 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Label <label>.` | Creates a label that can be gone to with a goto statement. |
 | `Goto <label>.` | Starts executing at the given `label`. |
 | `Goto <label> if <condition>.` | Goes to the label only if the `condition` is true. |
+| `Record to <path>.` | Records keyboard and mouse actions taken to a file at the given path. |
+| `Run <name>.` | Runs a script loaded into a variable. |
+| `Run script from <path>.` | Runs a script from a file at the given `path`. |
+| `Open <path>.` | Opens a file or directory. |
 
 ### Example
     Capture screen.

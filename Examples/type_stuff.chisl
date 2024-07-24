@@ -1,0 +1,5 @@
+Wait 3 s.
+
+Type "Testing 1 2 3".
+Wait 1 s.
+Type "SLOW TYPE" with 1000 delay.
