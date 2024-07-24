@@ -17,6 +17,7 @@
     "url": "https://github.com/mtalyat/Computer-Human-Interface-Scripting-Language/issues"
   },
   "publisher": "mtalyat",
+  "main": "./src/extension.js",
   "contributes": {
     "languages": [{
       "id": "chisl",
@@ -33,6 +34,12 @@
       {
         "language": "chisl",
         "path": "./snippets/chisl.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "chisl.runChislFile",
+        "title": "Run CHISL File"
       }
     ]
   }

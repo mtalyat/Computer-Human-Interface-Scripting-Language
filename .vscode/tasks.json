@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run CHISL File",
+      "type": "shell",
+      "command": "chisl",
+      "args": [
+        "c:\\Users\\mitch\\source\\repos\\ComputerHumanInterface\\CHISL\\x64\\Release\\test.chisl"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

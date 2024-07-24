@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.1.0
+
+- Add support for CHISL 1.1.0.
+- Add "Run CHISL File" command.
+
 ## 1.0.1
 
 - Add icon.
