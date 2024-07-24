@@ -39,3 +39,7 @@ Type value with 100 delay.
 Label start. 
 Goto start. 
 Goto start if x < 100. 
+Record to path. 
+Run name. 
+Run script from path. 
+Open path. 
