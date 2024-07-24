@@ -278,5 +278,33 @@
             "Goto ${1:label} if ${2:condition}. "
         ],
         "description": "Goes to the label only if the `condition` is true."
+    },
+    "Record": {
+        "prefix": "record",
+        "body": [
+            "Record to ${1:path}. "
+        ],
+        "description": "Records keyboard and mouse actions taken to a file at the given path."
+    },
+    "Run": {
+        "prefix": "run",
+        "body": [
+            "Run ${1:name}. "
+        ],
+        "description": "Runs a script loaded into a variable."
+    },
+    "Run script": {
+        "prefix": "run script",
+        "body": [
+            "Run script from ${1:path}. "
+        ],
+        "description": "Runs a script from a file at the given `path`."
+    },
+    "Open": {
+        "prefix": "open",
+        "body": [
+            "Open ${1:path}. "
+        ],
+        "description": "Opens a file or directory."
     }
 }

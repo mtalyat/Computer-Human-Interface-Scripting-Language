@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <regex>
 #include <fstream>
+#include <chrono>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 
@@ -145,6 +146,78 @@ WORD string_to_key(const CHISL_STRING& keyString) {
 	{
 		std::cerr << "Unknown key: " << keyString << std::endl;
 		return 0;
+	}
+}
+
+CHISL_STRING key_to_string(const WORD key)
+{
+	static const std::unordered_map<WORD, CHISL_STRING> keyMap = {
+	{VK_ESCAPE, "escape"},
+	{VK_SPACE, "space"},
+	{VK_SPACE, " "},
+	{VK_RETURN, "enter"},
+	{VK_RETURN, "return"},
+	{VK_RETURN, "\n"},
+	{VK_TAB, "tab"},
+	{VK_TAB, "\t"},
+	{VK_SHIFT, "shift"},
+	{VK_CONTROL, "ctrl"},
+	{VK_MENU, "alt"},
+	{VK_LEFT, "left"},
+	{VK_UP, "up"},
+	{VK_RIGHT, "right"},
+	{VK_DOWN, "down"},
+	{VK_BACK, "backspace"},
+	{VK_BACK, "back"},
+	{VK_BACK, "\b"},
+	{'A', "a"},
+	{'B', "b"},
+	{'C', "c"},
+	{'D', "d"},
+	{'E', "e"},
+	{'F', "f"},
+	{'G', "g"},
+	{'H', "h"},
+	{'I', "i"},
+	{'J', "j"},
+	{'K', "k"},
+	{'L', "l"},
+	{'M', "m"},
+	{'N', "n"},
+	{'O', "o"},
+	{'P', "p"},
+	{'Q', "q"},
+	{'R', "r"},
+	{'S', "s"},
+	{'T', "t"},
+	{'U', "u"},
+	{'V', "v"},
+	{'W', "w"},
+	{'X', "x"},
+	{'Y', "y"},
+	{'Z', "z"},
+	{'0', "0"},
+	{'1', "1"},
+	{'2', "2"},
+	{'3', "3"},
+	{'4', "4"},
+	{'5', "5"},
+	{'6', "6"},
+	{'7', "7"},
+	{'8', "8"},
+	{'9', "9"}
+	};
+
+	auto it = keyMap.find(key);
+
+	if (it != keyMap.end())
+	{
+		return it->second;
+	}
+	else
+	{
+		std::cerr << "Unknown key: " << key << std::endl;
+		return "";
 	}
 }
 
@@ -417,6 +490,11 @@ public:
 		m_variables[name] = value;
 	}
 
+	bool contains(CHISL_STRING const& name) const
+	{
+		return m_variables.contains(name);
+	}
+
 	Value get(CHISL_STRING const& name) const
 	{
 		auto found = m_variables.find(name);
@@ -493,6 +571,7 @@ enum ChislToken
 	CHISL_KEYWORD_PAUSE = 22010, // pause
 	CHISL_KEYWORD_PRINT = 22020, // print <value>
 	CHISL_KEYWORD_SHOW = 22030, // show <value>
+	CHISL_KEYWORD_OPEN = 22040, // open <path>
 
 	//	Mouse
 	CHISL_KEYWORD_MOUSE_SET = 23000, // set mouse to <x> <y>
@@ -511,11 +590,16 @@ enum ChislToken
 	CHISL_KEYWORD_KEY_TYPE_WITH_DELAY = 24021, // type <value> with <delay> delay
 
 	//	Control
-	CHISL_KEYWORD_LABEL = 25000, // label <label>:
+	CHISL_KEYWORD_LABEL = 25000, // label <label>
 	CHISL_KEYWORD_GOTO = 25010, // goto <label>
 	CHISL_KEYWORD_GOTO_IF = 25011, // goto <label> if <condition>
 
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_GOTO_IF,
+	// SCRIPTING
+	CHISL_KEYWORD_RECORD = 26000, // record to <path>
+	CHISL_KEYWORD_RUN = 26010, // run <name>
+	CHISL_KEYWORD_RUN_SCRIPT = 26011, // run script from <path>
+
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_RUN_SCRIPT,
 };
 
 /// <summary>
@@ -591,6 +675,7 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "pause", CHISL_KEYWORD_PAUSE },
 		{ "print", CHISL_KEYWORD_PRINT },
 		{ "show", CHISL_KEYWORD_SHOW },
+		{ "open", CHISL_KEYWORD_OPEN },
 
 		{ "set mouse", CHISL_KEYWORD_MOUSE_SET },
 		{ "move mouse", CHISL_KEYWORD_MOUSE_MOVE },
@@ -604,7 +689,11 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "type", CHISL_KEYWORD_KEY_TYPE },
 
 		{ "label", CHISL_KEYWORD_LABEL },
-		{ "goto", CHISL_KEYWORD_GOTO }
+		{ "goto", CHISL_KEYWORD_GOTO },
+
+		{ "record", CHISL_KEYWORD_RECORD },
+		{ "run", CHISL_KEYWORD_RUN },
+		{ "run script", CHISL_KEYWORD_RUN_SCRIPT },
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -669,6 +758,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_PAUSE, "pause" },
 		{ CHISL_KEYWORD_PRINT, "print" },
 		{ CHISL_KEYWORD_SHOW, "show" },
+		{ CHISL_KEYWORD_OPEN, "open" },
 
 		{ CHISL_KEYWORD_MOUSE_SET, "set mouse" },
 		{ CHISL_KEYWORD_MOUSE_SET_MATCH, "set mouse match" },
@@ -687,6 +777,10 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_LABEL, "label" },
 		{ CHISL_KEYWORD_GOTO, "goto" },
 		{ CHISL_KEYWORD_GOTO_IF, "goto if" },
+
+		{ CHISL_KEYWORD_RECORD, "record" },
+		{ CHISL_KEYWORD_RUN, "run" },
+		{ CHISL_KEYWORD_RUN_SCRIPT, "run script" },
 	};
 
 	auto found = tokenStrings.find(token);
@@ -877,7 +971,7 @@ std::optional<Image> image_read(CHISL_STRING const& path)
 /// <returns></returns>
 std::optional<Value> file_read(CHISL_STRING const& path)
 {
-	if (path.ends_with(".txt"))
+	if (path.ends_with(".txt") || path.ends_with(".chisl"))
 	{
 		return text_read(path);
 	}
@@ -1606,6 +1700,140 @@ void key_type_string(CHISL_STRING const& text, DWORD const delay)
 	}
 }
 
+void open(CHISL_STRING const& path)
+{
+	HINSTANCE result = ShellExecuteA(NULL, "open", path.c_str(), NULL, NULL, SW_SHOWNORMAL);
+
+	if ((int)result <= 32)
+	{
+		std::cerr << "Failed to open file. Error code: " << (int)result << std::endl;
+	}
+}
+
+HHOOK keyboardHook;
+HHOOK mouseHook;
+std::atomic<bool> recording;
+std::ofstream* recordingFile;
+std::chrono::steady_clock::time_point recordingTime;
+
+void record_wait()
+{
+	auto end = std::chrono::high_resolution_clock::now();
+
+	std::chrono::duration<double, std::milli> elapsed = end - recordingTime;
+	size_t elapsed_ms = static_cast<size_t>(elapsed.count());
+
+	if (elapsed_ms > 0)
+	{
+		*recordingFile << "Wait " << elapsed_ms << " ms." << std::endl;
+	}
+
+	recordingTime = end;
+}
+
+LRESULT CALLBACK keyboard_hook(int const nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HC_ACTION) {
+		KBDLLHOOKSTRUCT* pKeyboard = (KBDLLHOOKSTRUCT*)lParam;
+		if (wParam == WM_KEYDOWN) {
+			// abort on escape key
+			if (pKeyboard->vkCode == VK_ESCAPE)
+			{
+				recording = false;
+				return 1;
+			}
+			record_wait();
+			*recordingFile << "Press key " << key_to_string(static_cast<WORD>(pKeyboard->vkCode)) << "." << std::endl;
+		}
+		else if (wParam == WM_KEYUP) {
+			record_wait();
+			*recordingFile << "Release key " << key_to_string(static_cast<WORD>(pKeyboard->vkCode)) << "." << std::endl;
+		}
+	}
+	return CallNextHookEx(keyboardHook, nCode, wParam, lParam);
+}
+
+LRESULT CALLBACK mouse_hook(int nCode, WPARAM wParam, LPARAM lParam) {
+	if (nCode == HC_ACTION) {
+		MSLLHOOKSTRUCT* pMouse = (MSLLHOOKSTRUCT*)lParam;
+		switch (wParam) {
+		case WM_LBUTTONDOWN:
+			record_wait();
+			*recordingFile << "Press mouse left." << std::endl;
+			break;
+		case WM_LBUTTONUP:
+			record_wait();
+			*recordingFile << "Release mouse left." << std::endl;
+			break;
+		case WM_RBUTTONDOWN:
+			record_wait();
+			*recordingFile << "Press mouse right." << std::endl;
+			break;
+		case WM_RBUTTONUP:
+			record_wait();
+			*recordingFile << "Release mouse right." << std::endl;
+			break;
+		case WM_MOUSEMOVE:
+			record_wait();
+			*recordingFile << "Set mouse to " << pMouse->pt.x << " " << pMouse->pt.y << "." << std::endl;
+			break;
+		}
+	}
+	return CallNextHookEx(mouseHook, nCode, wParam, lParam);
+}
+
+void set_hooks()
+{
+	keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, keyboard_hook, NULL, 0);
+	mouseHook = SetWindowsHookEx(WH_MOUSE_LL, mouse_hook, NULL, 0);
+	if (!keyboardHook || !mouseHook) {
+		std::cerr << "Failed to install hooks." << std::endl;
+		//MessageBox(NULL, "Failed to install hooks!", "Error", MB_ICONERROR);
+		//exit(1);
+	}
+}
+
+void unset_hooks()
+{
+	UnhookWindowsHookEx(keyboardHook);
+	UnhookWindowsHookEx(mouseHook);
+}
+
+void record(CHISL_STRING const& path)
+{
+	recording = true;
+	recordingFile = new std::ofstream(path, std::ios::out | std::ios::trunc);
+
+	if (!recordingFile->is_open())
+	{
+		std::cerr << "Failed to open recording file. Path: " << path << std::endl;
+		delete recordingFile;
+		return;
+	}
+
+	set_hooks();
+
+	recordingTime = std::chrono::high_resolution_clock::now();
+
+	MSG msg;
+	while (recording)
+	{
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+		wait(10);
+	}
+
+	unset_hooks();
+
+	recordingFile->flush();
+	recordingFile->close();
+	delete recordingFile;
+	recording = false;
+}
+
 /// <summary>
 /// Holds data for an executable command.
 /// </summary>
@@ -1657,6 +1885,9 @@ public:
 			break;
 		case CHISL_KEYWORD_GOTO:
 			fix_token(CHISL_KEYWORD_GOTO_IF, 1, "if");
+			break;
+		case CHISL_KEYWORD_RUN:
+			fix_token(CHISL_KEYWORD_RUN_SCRIPT, 1, "from");
 			break;
 		}
 	}
@@ -1748,7 +1979,7 @@ public:
 		case CHISL_KEYWORD_FIND_ALL_WITH:
 			return verify_args_size(8) && verify_keyword(0, "all") && verify_keyword(2, "by") && verify_keyword(4, "in") && verify_keyword(6, "with");
 		case CHISL_KEYWORD_FIND_TEXT:
-			return verify_args_size(7) && verify_keyword(0, "text") && verify_keyword(1, {"block", "paragraph", "symbol", "line", "word"}) && verify_keyword(3, "by") && verify_keyword(5, "in");
+			return verify_args_size(7) && verify_keyword(0, "text") && verify_keyword(1, { "block", "paragraph", "symbol", "line", "word" }) && verify_keyword(3, "by") && verify_keyword(5, "in");
 		case CHISL_KEYWORD_FIND_TEXT_WITH:
 			return verify_args_size(9) && verify_keyword(0, "text") && verify_keyword(1, { "block", "paragraph", "symbol", "line", "word" }) && verify_keyword(3, "by") && verify_keyword(5, "in") && verify_keyword(7, "with");
 		case CHISL_KEYWORD_FIND_ALL_TEXT:
@@ -1768,6 +1999,8 @@ public:
 		case CHISL_KEYWORD_PRINT:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_SHOW:
+			return verify_args_size(1);
+		case CHISL_KEYWORD_OPEN:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_MOUSE_SET:
 			return verify_args_size(3) && verify_keyword(0, "to");
@@ -1799,6 +2032,12 @@ public:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_GOTO_IF:
 			return verify_args_size(3, false) && verify_keyword(1, "if");
+		case CHISL_KEYWORD_RECORD:
+			return verify_args_size(2) && verify_keyword(0, "to");
+		case CHISL_KEYWORD_RUN:
+			return verify_args_size(1);
+		case CHISL_KEYWORD_RUN_SCRIPT:
+			return verify_args_size(3) && verify_keyword(1, "from");
 		default:
 			std::cerr << "Unable to verify \"" << string_token_type(m_token) << "\".";
 			return false;
@@ -2203,20 +2442,18 @@ std::vector<Command> commandize(std::vector<Token> const& tokens)
 class Program
 {
 private:
-	CHISL_STRING m_path;
 	std::vector<Command> m_commands;
 	std::unordered_map<CHISL_STRING, size_t> m_labels;
 	size_t m_index;
 	Scope m_scope;
 
 public:
-	Program(CHISL_STRING const& path)
-		: m_path(path), m_commands(), m_labels(), m_index(), m_scope()
+	Program() = default;
+	Program(CHISL_STRING const& text)
+		: m_commands(), m_labels(), m_index(), m_scope()
 	{
 		// convert to commands
-		std::optional<CHISL_STRING> text = text_read(path);
-		if (!text.has_value()) return;
-		std::vector<Token> tokens = tokenize(text.value());
+		std::vector<Token> tokens = tokenize(text);
 		m_commands = commandize(tokens);
 
 		// find all labels
@@ -2237,8 +2474,19 @@ public:
 	Scope const& get_scope() const { return m_scope; }
 	void set_index(size_t const index) { m_index = index; }
 
-	void run()
+	int run()
 	{
+		// ensure the program is ok to run (syntax, etc.)
+		if (!validate())
+		{
+			// something went wrong
+			std::cerr << "Program validation failed.\n";
+			return 1;
+		}
+
+		// parse from string to values if needed
+		fix();
+
 		//std::cout << "Running program." << std::endl;
 
 		m_index = 0;
@@ -2260,6 +2508,8 @@ public:
 		}
 
 		//std::cout << "Done running program." << std::endl;
+
+		return 0;
 	}
 
 	Value evaluate(std::vector<Token> const& tokens)
@@ -2267,7 +2517,7 @@ public:
 		if (tokens.empty()) return nullptr;
 
 		// assume in postfix notation
-		std::vector<CHISL_FLOAT> operands;
+		std::vector<Value> operands;
 
 		for (auto const& token : tokens)
 		{
@@ -2277,9 +2527,9 @@ public:
 			{
 				// operator
 				// all operators are left precedence and 1 args as of right now, and use doubles
-				CHISL_FLOAT right = operands.back();
+				CHISL_FLOAT right = value_to_number(operands.back());
 				operands.pop_back();
-				CHISL_FLOAT left = operands.back();
+				CHISL_FLOAT left = value_to_number(operands.back());
 				operands.pop_back();
 
 				switch (token.get_token())
@@ -2337,18 +2587,23 @@ public:
 					{
 						operands.push_back(parse_double(str));
 					}
+					else if(str.starts_with("\"") && str.ends_with("\""))
+					{
+						// just a string
+						operands.push_back(str.substr(1, str.length() - 2));
+					}
 					else
 					{
 						Value variableValue = m_scope.get(str);
 
-						// same deal, but no more variables
-						operands.push_back(value_to_number(variableValue));
+						// value within a variable
+						operands.push_back(variableValue);
 					}
 				}
 				else
 				{
 					// no variable: treat as normal
-					operands.push_back(value_to_number(token.get_value()));
+					operands.push_back(token.get_value());
 				}
 			}
 		}
@@ -2376,7 +2631,7 @@ public:
 		}
 		case CHISL_KEYWORD_LOAD:
 		{
-			std::optional<Value> value = file_read(command.get_arg<CHISL_STRING>(2));
+			std::optional<Value> value = file_read(command.get_text(2, m_scope));
 			if (value.has_value()) m_scope.set(command.get_arg<CHISL_STRING>(0), value.value());
 			break;
 		}
@@ -2832,6 +3087,12 @@ public:
 			}
 			break;
 		}
+		case CHISL_KEYWORD_OPEN:
+		{
+			CHISL_STRING path = command.get_text(0, m_scope);
+			open(path);
+			break;
+		}
 		case CHISL_KEYWORD_MOUSE_SET:
 			mouse_set(command.get_arg<int>(1), command.get_arg<int>(2));
 			break;
@@ -3089,12 +3350,53 @@ public:
 
 			break;
 		}
+		case CHISL_KEYWORD_RECORD:
+		{
+			CHISL_STRING path = command.get_text(1, m_scope);
+
+			record(path);
+
+			break;
+		}
+		case CHISL_KEYWORD_RUN:
+		{
+			// get text
+			CHISL_STRING code = command.get_text(0, m_scope);
+
+			Program program(code);
+			program.run();
+
+			break;
+		}
+		case CHISL_KEYWORD_RUN_SCRIPT:
+		{
+			// get path
+			CHISL_STRING path = command.get_text(2, m_scope);
+
+			Program program = Program::from_file(path);
+			program.run();
+
+			break;
+		}
 		default:
 			std::cerr << "Unable to execute \"" << string_token_type(command.get_token()) << "\".";
 			break;
 		}
 	}
 
+	static Program from_file(CHISL_STRING const& path)
+	{
+		std::optional<CHISL_STRING> text = text_read(path);
+
+		if (!text.has_value())
+		{
+			return Program();
+		}
+
+		return Program(text.value());
+	}
+
+private:
 	bool validate() const
 	{
 		bool valid = true;
@@ -3117,7 +3419,6 @@ public:
 		}
 	}
 
-private:
 	void goto_label(CHISL_STRING const& label)
 	{
 		auto found = m_labels.find(label);
@@ -3155,21 +3456,8 @@ int main(int argc, char* argv[])
 	// SETUP
 	cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);
 
-	Program program(argv[1]);
-
-	// ensure the program is ok to run (syntax, etc.)
-	if (!program.validate())
-	{
-		// something went wrong
-		std::cerr << "Validation failed.\n";
-		return false;
-	}
-
-	// parse from string to values if needed
-	program.fix();
+	Program program = Program::from_file(argv[1]);
 
 	// run program
-	program.run();
-
-	return 0;
+	return program.run();
 }

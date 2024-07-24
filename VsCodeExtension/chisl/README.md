@@ -16,6 +16,14 @@ None as of now.
 
 ## Release Notes
 
+### 1.1.0
+
+- Add support for CHISL 1.1.0.
+
+### 1.0.1
+
+- Add extension marketplace image.
+
 ### 1.0.0
 
-Initial release.
+- Initial release.
