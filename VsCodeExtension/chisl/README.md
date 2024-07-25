@@ -16,6 +16,10 @@ None as of now.
 
 ## Release Notes
 
+### 1.1.1
+
+- Add syntax support for Count.
+
 ### 1.1.0
 
 - Add support for CHISL 1.1.0.

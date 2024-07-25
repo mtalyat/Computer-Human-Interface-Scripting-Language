@@ -33,7 +33,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.chisl",
-				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open)\\b"
+				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count)\\b"
 			}]
 		},
 		"words": {
