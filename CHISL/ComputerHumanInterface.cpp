@@ -2104,7 +2104,7 @@ public:
 
 	void fail(CHISL_STRING const& message) const
 	{
-		std::cerr << "\"" << string_token_type(m_token) << "\" failed: " << message << std::endl;
+		std::cerr << "\"" << to_string() << "\" failed: " << message << std::endl;
 	}
 
 	CHISL_STRING to_string() const

@@ -1,0 +1,385 @@
+#------ Capture
+Print "Capture".
+Pause.
+Capture test.
+Show test.
+Delete test.
+
+
+#------ Capture at
+Print "Capture at".
+Pause.
+Capture test at 100 100 100 100.
+Show test.
+Delete test.
+
+
+#------ Set
+Print "Set".
+Pause.
+Set test to -2.4.
+Print "Expecting -2.4.".
+Print test.
+Set test to test + 5.
+Print "Expecting 2.6.".
+Print test.
+Set test to "Hello world!".
+Print "Expecting Hello world!".
+Print test.
+Set test to (4 + 1) * 3.
+Print "Expecting 15.".
+Print test.
+Delete test.
+
+
+#------ Get
+Print "TODO: Get".
+Pause.
+
+
+#------ Load
+Print "Load".
+Pause.
+Load test from "windows_icon.png".
+Show test.
+
+
+#------ Save
+Print "Save".
+Pause.
+Load test from "windows_icon.png".
+Save test to "test.png".
+Delete test.
+
+
+#------ Delete
+Print "Delete".
+Pause.
+Delete test.
+Print "Expecting .".
+Print test.
+
+
+#------ Copy
+Print "Copy".
+Pause.
+Load test from "windows_icon.png".
+Copy test to test2.
+Delete test.
+Show test2.
+Delete test2.
+
+
+#------ Crop
+Print "Crop".
+Pause.
+Load test from "windows_icon.png".
+Crop test at 5 5 10 10.
+Show test.
+Delete test.
+
+
+#------ Find
+Print "Find".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find match by test in screen.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete test.
+Delete match.
+
+
+#------ Find with
+Print "Find with".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find match by test in screen with 0.5.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete test.
+Delete match.
+
+
+#------ Find all
+Print "Find all".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find all matches by test in screen.
+Get match from matches at 0.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete test.
+Delete matches.
+Delete match.
+
+
+#------ Find all with
+Print "Find all with".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find all matches by test in screen with 0.5.
+Get match from matches at 0.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete test.
+Delete matches.
+Delete match.
+
+
+#------ Find text
+Print "Find text".
+Pause.
+Load screen from "screenshot.png".
+Find text word match by "text" in screen.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete match.
+
+
+#------ Find text with
+Print "Find text with".
+Pause.
+Load screen from "screenshot.png".
+Find text word match by "text" in screen with 0.5.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete match.
+
+
+#------ Find all text
+Print "Find all text".
+Pause.
+Load screen from "screenshot.png".
+Find all text word matches by "text" in screen.
+Get match from matches at 0.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete matches.
+Delete match.
+
+
+#------ Find all text with
+Print "Find all text with".
+Pause.
+Load screen from "screenshot.png".
+Find all text word matches by "text" in screen with 0.5.
+Get match from matches at 0.
+Draw match on screen. 
+Show screen.
+Delete screen.
+Delete matches.
+Delete match.
+
+
+#------ Read
+Print "Read".
+Pause.
+Load screen from "screenshot.png".
+Read test from screen.
+Print test.
+Delete screen.
+Delete test.
+
+
+#------ Draw
+Print "Draw".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find match by test in screen.
+Draw match on screen.
+Show screen.
+Delete screen.
+Delete test.
+Delete match.
+
+
+#------ Draw rect
+Print "Draw rect".
+Pause.
+Load screen from "screenshot.png".
+Draw 100 100 100 100 on screen. 
+Show screen.
+Delete screen.
+
+
+#------ Wait
+Print "Wait".
+Pause.
+Print "Waiting 1 s".
+Wait 1 s.
+Print "Waiting 500 ms".
+Wait 500 ms.
+Print "Waiting 0 ms".
+Wait 0 ms.
+
+
+#------ 
+Print "Pause".
+Pause.
+
+
+#------ Print
+Print "Print".
+Pause.
+Set test to 100.
+Print test.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find match by test in screen.
+Print match.
+Delete screen.
+Delete test.
+Delete match.
+
+
+#------ Show
+Print "Show".
+Pause.
+Show "Hello world!".
+Load screen from "screenshot.png".
+Show screen.
+Delete screen.
+
+
+#------ Set mouse
+Print "Set mouse".
+Pause.
+Load screen from "screenshot.png".
+Load test from "windows_icon.png".
+Find match by test in screen.
+Set mouse to match. 
+Delete screen.
+Delete test.
+Delete match.
+
+
+#------ Set mouse to
+Print "Set mouse to".
+Pause.
+Set mouse to 100 100. 
+
+
+#------ Mouse mouse
+Print "Move mouse".
+Pause.
+Move mouse by 100 100. 
+
+
+#------ Press mouse
+Print "Press mouse".
+Pause.
+Print "Left".
+Press mouse left.
+Print "Middle".
+Press mouse middle.
+Print "Right".
+Press mouse right.
+
+
+#------ Release mouse
+Print "Release mouse".
+Pause.
+Print "Left".
+Release mouse left.
+Print "Middle".
+Release mouse middle.
+Print "Right".
+Release mouse right.
+
+
+#------ Click mouse
+Print "Click mouse".
+Pause.
+Print "Left".
+Click mouse left.
+Print "Middle".
+Click mouse middle.
+Print "Right".
+Click mouse right.
+
+
+#------ Scroll mouse
+Print "Scroll mouse".
+Pause.
+Print "y".
+Scroll mouse 100. 
+Print "x".
+Scroll mouse 0 100. 
+Print "xy".
+Scroll mouse -100 -100. 
+
+
+#------ Press key
+Print "Press key".
+Pause.
+Press key space. 
+
+#------ Release key
+Print "Release key".
+Pause.
+Release key space. 
+
+#------ Type
+Print "Type".
+Pause.
+Type "Hello world!". 
+
+#------ Type with
+Print "Type with".
+Pause.
+Type "Hello world!" with 100 delay. 
+
+#------ Label, goto, goto if
+Print "Label, goto, goto if".
+Pause.
+Set test to 0.
+
+Label label1.
+Print test.
+Goto label2 if test == 5. 
+Set test to test + 1.
+Goto label1.
+
+Label label2.
+Delete test.
+
+#------ Record
+Print "Record".
+Pause.
+Print "Recording... press escape to exit.".
+Record to "recording.chisl". 
+Load test from "recording.chisl".
+Print test.
+Delete test.
+
+#------ Run
+Print "Run".
+Pause.
+Load test from "test.chisl".
+Run test.
+Delete test.
+
+#------ Run script
+Print "Run script".
+Pause.
+Run script from "test.chisl". 
+
+#------ Open
+Print "Open".
+Pause.
+Open "test.chisl". 
+
+Print "Done.".

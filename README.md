@@ -14,6 +14,7 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Capture <name>.` | Captures all of the screen and stores it in `name`. |
 | `Capture <name> at <x> <y> <width> <height>.` | Captures part of the screen and stores it in `name`. |
 | `Set <name> to <value>.` | Sets a variable to a value. |
+| `Count <name> from <collection>.` | Stores the size of `collection` in `name`. |
 | `Get <name> from <collection> at <index>.` | Gets the value from a collection at the `index` and stores it in `name`. |
 | `Load <name> from <path>.` | Load a file from the path into the variable. |
 | `Save <name> to <path>.` | Saves a variable to the disk. |

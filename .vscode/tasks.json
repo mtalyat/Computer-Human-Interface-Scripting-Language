@@ -6,7 +6,7 @@
       "type": "shell",
       "command": "chisl",
       "args": [
-        "c:\\Users\\mitch\\source\\repos\\ComputerHumanInterface\\CHISL\\x64\\Release\\test.chisl"
+        "c:\\Users\\mitch\\source\\repos\\ComputerHumanInterface\\Examples\\commands_test.chisl"
       ],
       "group": {
         "kind": "build",
