@@ -16,12 +16,19 @@
 
 typedef std::string CHISL_STRING;
 typedef double CHISL_FLOAT;
-typedef long CHISL_INT;
+typedef int CHISL_INT;
 typedef cv::Mat CHISL_MATRIX;
 typedef cv::Point CHISL_POINT;
 
 constexpr CHISL_FLOAT DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 100;
+
+struct Config
+{
+	bool echo = false;
+};
+
+static Config config = {};
 
 /// <summary>
 /// Converts the given string into lower case characters.
@@ -599,7 +606,10 @@ enum ChislToken
 	CHISL_KEYWORD_RUN = 26010, // run <name>
 	CHISL_KEYWORD_RUN_SCRIPT = 26011, // run script from <path>
 
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_RUN_SCRIPT,
+	// CONFIG
+	CHISL_KEYWORD_ECHO = 27000, // echo <on/off>
+
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_ECHO,
 };
 
 /// <summary>
@@ -694,6 +704,8 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "record", CHISL_KEYWORD_RECORD },
 		{ "run", CHISL_KEYWORD_RUN },
 		{ "run script", CHISL_KEYWORD_RUN_SCRIPT },
+
+		{ "echo", CHISL_KEYWORD_ECHO }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -781,6 +793,8 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_RECORD, "record" },
 		{ CHISL_KEYWORD_RUN, "run" },
 		{ CHISL_KEYWORD_RUN_SCRIPT, "run script" },
+
+		{ CHISL_KEYWORD_ECHO, "echo" }
 	};
 
 	auto found = tokenStrings.find(token);
@@ -1373,6 +1387,18 @@ void draw(Image& image, Match const& match, cv::Scalar const color = cv::Scalar(
 	cv::rectangle(image.get(), match.get_point(), match.get_point() + match.get_size(), color, width);
 }
 
+/// <summary>
+/// Draws a rectangle on the given Image.
+/// </summary>
+/// <param name="image"></param>
+/// <param name="match"></param>
+/// <param name="color"></param>
+/// <param name="width"></param>
+void draw_rect(Image& image, int const x, int const y, int const w, int const h, cv::Scalar const color = cv::Scalar(0, 0, 255), int width = 2)
+{
+	cv::rectangle(image.get(), CHISL_POINT(x, y), CHISL_POINT(x + w, y + h), color, width);
+}
+
 enum class MouseButton
 {
 	Left,
@@ -1431,10 +1457,12 @@ void show(Value const& value)
 	if (std::holds_alternative<Image>(value))
 	{
 		cv::imshow("Image", std::get<Image>(value).get());
+		cv::waitKey(0);
 	}
 	else
 	{
 		print(value);
+		std::cin.get();
 	}
 }
 
@@ -1452,7 +1480,8 @@ void wait(DWORD const ms)
 /// </summary>
 void pause()
 {
-	cv::waitKey(0);
+	std::cout << "Press any key to continue...";
+	std::cin.get();
 }
 
 /// <summary>
@@ -1853,6 +1882,9 @@ public:
 		case CHISL_KEYWORD_CAPTURE:
 			fix_token(CHISL_KEYWORD_CAPTURE_AT, 1, "at");
 			break;
+		case CHISL_KEYWORD_DRAW:
+			fix_token(CHISL_KEYWORD_DRAW_RECT, 4, "on");
+			break;
 		case CHISL_KEYWORD_FIND:
 			if (fix_token(CHISL_KEYWORD_FIND_TEXT, 0, "text"))
 			{
@@ -2038,6 +2070,8 @@ public:
 			return verify_args_size(1);
 		case CHISL_KEYWORD_RUN_SCRIPT:
 			return verify_args_size(3) && verify_keyword(1, "from");
+		case CHISL_KEYWORD_ECHO:
+			return verify_args_size(1) && verify_keyword(0, std::vector<CHISL_STRING>{ "on", "off" });
 		default:
 			std::cerr << "Unable to verify \"" << string_token_type(m_token) << "\".";
 			return false;
@@ -2185,7 +2219,7 @@ private:
 	{
 		if ((exact && m_args.size() != size) || (!exact && m_args.size() < size))
 		{
-			fail("Incorrect number of arguments.");
+			fail(CHISL_STRING("Incorrect number of arguments. Expected: ").append(std::to_string(size)).append(", actual: ").append(std::to_string(m_args.size())));
 			return false;
 		}
 		return true;
@@ -2240,7 +2274,7 @@ private:
 std::vector<Token> tokenize(CHISL_STRING const& str)
 {
 	// split into string tokens
-	std::regex re("\"([^\"]*)\"|[+-]?\\d+|[+-]?\\d?\\.\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
+	std::regex re("\"([^\"]*)\"|[+-]?\\d?\\.?\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
 	std::vector<CHISL_STRING> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -2487,14 +2521,15 @@ public:
 		// parse from string to values if needed
 		fix();
 
-		//std::cout << "Running program." << std::endl;
-
 		m_index = 0;
 		size_t lines = m_commands.size();
 
 		for (; m_index < lines; m_index++)
 		{
-			//std::cout << "Executing: " << m_commands.at(m_index).to_string() << std::endl;
+			if (config.echo)
+			{
+				std::cout << m_commands.at(m_index).to_string() << std::endl;
+			}
 
 			// execute the command
 			execute(m_commands.at(m_index));
@@ -2506,8 +2541,6 @@ public:
 				break;
 			}
 		}
-
-		//std::cout << "Done running program." << std::endl;
 
 		return 0;
 	}
@@ -3024,8 +3057,22 @@ public:
 			break;
 		}
 		case CHISL_KEYWORD_DRAW_RECT:
-			std::cout << "TODO: DRAW RECT\n";
+		{
+			int x = command.get_variable<int>(0, m_scope);
+			int y = command.get_variable<int>(1, m_scope);
+			int w = command.get_variable<int>(2, m_scope);
+			int h = command.get_variable<int>(3, m_scope);
+
+			Image image = command.get_variable<Image>(2, m_scope);
+			if (image.get().empty())
+			{
+				command.fail("The image to draw on does not exist.");
+				break;
+			}
+
+			draw_rect(image, x, y, w, h);
 			break;
+		}
 		case CHISL_KEYWORD_WAIT:
 		{
 			int time = command.get_arg<int>(0);
@@ -3338,14 +3385,12 @@ public:
 			// check condition
 			Value value = evaluate(command.get_args(2));
 
-			if (std::holds_alternative<CHISL_FLOAT>(value))
+			if ((std::holds_alternative<CHISL_FLOAT>(value) && std::get<CHISL_FLOAT>(value)) ||
+				(std::holds_alternative<CHISL_INT>(value) && std::get<CHISL_INT>(value)))
 			{
-				if (std::get<CHISL_FLOAT>(value))
-				{
-					// set working index to label position
-					CHISL_STRING label = command.get_arg<CHISL_STRING>(0);
-					goto_label(label);
-				}
+				// set working index to label position
+				CHISL_STRING label = command.get_arg<CHISL_STRING>(0);
+				goto_label(label);
 			}
 
 			break;
@@ -3375,6 +3420,15 @@ public:
 
 			Program program = Program::from_file(path);
 			program.run();
+
+			break;
+		}
+		case CHISL_KEYWORD_ECHO:
+		{
+			// get path
+			CHISL_STRING status = command.get_arg<CHISL_STRING>(0);
+
+			config.echo = !status.compare("on");
 
 			break;
 		}

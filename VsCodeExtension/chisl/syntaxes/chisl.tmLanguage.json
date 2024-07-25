@@ -33,13 +33,13 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.chisl",
-				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count)\\b"
+				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count|Echo)\\b"
 			}]
 		},
 		"words": {
 			"patterns": [{
 				"name": "keyword.other.chisl",
-				"match": "(?i)\\b(at|to|from|by|in|with|mouse|key|if|h|m|s|ms|left|middle|right|block|paragraph|symbol|line|word)\\b"
+				"match": "(?i)\\b(at|to|from|by|in|with|mouse|key|if|h|m|s|ms|left|middle|right|block|paragraph|symbol|line|word|on|off)\\b"
 			}]
 		},
 		"strings": {

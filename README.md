@@ -55,6 +55,7 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 | `Run <name>.` | Runs a script loaded into a variable. |
 | `Run script from <path>.` | Runs a script from a file at the given `path`. |
 | `Open <path>.` | Opens a file or directory. |
+| `Echo <on/off>.` | Turns echoing commands on or off. |
 
 ### Example
     Capture screen.

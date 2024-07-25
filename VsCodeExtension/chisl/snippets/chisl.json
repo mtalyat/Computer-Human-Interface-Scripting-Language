@@ -306,5 +306,12 @@
             "Open ${1:path}. "
         ],
         "description": "Opens a file or directory."
+    },
+    "Echo": {
+        "prefix": "echo",
+        "body": [
+            "Echo ${1|on,off|}. "
+        ],
+        "description": "Turns echoing commands on or off."
     }
 }
