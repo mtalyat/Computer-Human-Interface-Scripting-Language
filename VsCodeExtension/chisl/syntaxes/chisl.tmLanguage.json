@@ -39,7 +39,7 @@
 		"words": {
 			"patterns": [{
 				"name": "keyword.other.chisl",
-				"match": "(?i)\\b(at|to|from|by|in|with|if|h|m|s|ms|left|middle|right|block|paragraph|symbol|line|word|on|off)\\b"
+				"match": "(?i)\\b(at|to|from|by|in|with|if|h|m|s|ms|left|middle|right|block|paragraph|symbol|line|word|on|off|times)\\b"
 			}]
 		},
 		"strings": {
