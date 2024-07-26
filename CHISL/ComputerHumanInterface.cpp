@@ -21,7 +21,7 @@ typedef cv::Mat CHISL_MATRIX;
 typedef cv::Point CHISL_POINT;
 
 constexpr CHISL_FLOAT DEFAULT_THRESHOLD = 0.5f;
-constexpr DWORD DEFAULT_TYPING_DELAY = 100;
+constexpr DWORD DEFAULT_TYPING_DELAY = 0;
 
 struct Config
 {
