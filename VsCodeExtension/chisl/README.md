@@ -16,6 +16,11 @@ None as of now.
 
 ## Release Notes
 
+### 1.1.2
+
+- Fix syntax coloring for \_\_\_ `mouse` and \_\_\_ `key`.
+- Fix syntax coloring for `times`.
+
 ### 1.1.1
 
 - Add support for CHISL 1.2.0.
@@ -25,11 +30,3 @@ None as of now.
 
 - Add support for CHISL 1.1.0.
 - Add "Run CHISL File" command.
-
-### 1.0.1
-
-- Add extension marketplace image.
-
-### 1.0.0
-
-- Initial release.

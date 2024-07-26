@@ -2,7 +2,8 @@
 
 ## 1.1.2
 
-- Fix syntax coloring for \_\_\_ mouse and \_\_\_ key.
+- Fix syntax coloring for \_\_\_ `mouse` and \_\_\_ `key`.
+- Fix syntax coloring for `times`.
 
 ## 1.1.1
 
