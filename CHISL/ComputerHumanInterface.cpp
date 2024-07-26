@@ -26,6 +26,7 @@ constexpr DWORD DEFAULT_TYPING_DELAY = 0;
 struct Config
 {
 	bool echo = false;
+	WORD quitKey = VK_ESCAPE;
 };
 
 static Config config = {};
@@ -608,8 +609,9 @@ enum ChislToken
 
 	// CONFIG
 	CHISL_KEYWORD_ECHO = 27000, // echo <on/off>
+	CHISL_KEYWORD_QUIT = 27010, // quit on <key>
 
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_ECHO,
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_QUIT,
 };
 
 /// <summary>
@@ -705,7 +707,8 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "run", CHISL_KEYWORD_RUN },
 		{ "run script", CHISL_KEYWORD_RUN_SCRIPT },
 
-		{ "echo", CHISL_KEYWORD_ECHO }
+		{ "echo", CHISL_KEYWORD_ECHO },
+		{ "quit", CHISL_KEYWORD_QUIT }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -794,7 +797,8 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_RUN, "run" },
 		{ CHISL_KEYWORD_RUN_SCRIPT, "run script" },
 
-		{ CHISL_KEYWORD_ECHO, "echo" }
+		{ CHISL_KEYWORD_ECHO, "echo" },
+		{ CHISL_KEYWORD_QUIT, "quit" }
 	};
 
 	auto found = tokenStrings.find(token);
@@ -2072,6 +2076,8 @@ public:
 			return verify_args_size(3) && verify_keyword(1, "from");
 		case CHISL_KEYWORD_ECHO:
 			return verify_args_size(1) && verify_keyword(0, std::vector<CHISL_STRING>{ "on", "off" });
+		case CHISL_KEYWORD_QUIT:
+			return verify_args_size(2) && verify_keyword(0, "on");
 		default:
 			std::cerr << "Unable to verify \"" << string_token_type(m_token) << "\".";
 			return false;
@@ -2535,7 +2541,7 @@ public:
 			execute(m_commands.at(m_index));
 
 			// check for cancelation using escape
-			if (check_for_key_input(VK_ESCAPE)) // & 0x8000 checks if down (MSB = 1 when down)
+			if (check_for_key_input(config.quitKey)) // & 0x8000 checks if down (MSB = 1 when down)
 			{
 				std::cout << "Program quit by user." << std::endl;
 				break;
@@ -3429,6 +3435,15 @@ public:
 			CHISL_STRING status = command.get_arg<CHISL_STRING>(0);
 
 			config.echo = !status.compare("on");
+
+			break;
+		}
+		case CHISL_KEYWORD_QUIT:
+		{
+			// get path
+			CHISL_STRING key = command.get_text(1, m_scope);
+
+			config.quitKey = string_to_key(key);
 
 			break;
 		}
