@@ -667,12 +667,11 @@ enum ChislToken
 	CHISL_KEYWORD_GOTO = 25010, // goto <label>
 	CHISL_KEYWORD_GOTO_IF = 25011, // goto <label> if <condition>
 
-	// SCRIPTING
+	// Scripting
 	CHISL_KEYWORD_RECORD = 26000, // record to <path>
 	CHISL_KEYWORD_RUN = 26010, // run <program>
-	CHISL_KEYWORD_RUN_SCRIPT = 26011, // run script from <path>
 
-	// CONFIG
+	// Configuration
 	CHISL_KEYWORD_CONFIGURE = 27000, // configure <setting> to <value>
 
 	CHISL_KEYWORD_FIRST = CHISL_KEYWORD_CAPTURE,
@@ -742,50 +741,7 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "<=", CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO },
 		{ "==", CHISL_PUNCT_EQUAL_TO },
 		{ "!=", CHISL_PUNCT_NOT_EQUAL_TO },
-		{ "\n", CHISL_PUNCT_END_OF_LINE },
-
-		{ "set", CHISL_KEYWORD_SET },
-		{ "load", CHISL_KEYWORD_LOAD },
-		{ "save", CHISL_KEYWORD_SAVE },
-		{ "delete", CHISL_KEYWORD_DELETE },
-		{ "copy", CHISL_KEYWORD_COPY },
-		{ "get", CHISL_KEYWORD_GET },
-		{ "count", CHISL_KEYWORD_COUNT },
-
-		{ "capture", CHISL_KEYWORD_CAPTURE },
-		{ "crop", CHISL_KEYWORD_CROP },
-		{ "find", CHISL_KEYWORD_FIND },
-		{ "find all", CHISL_KEYWORD_FIND_ALL },
-		{ "find text", CHISL_KEYWORD_FIND_TEXT },
-		{ "find all text", CHISL_KEYWORD_FIND_ALL_TEXT },
-		{ "read", CHISL_KEYWORD_READ },
-		{ "draw", CHISL_KEYWORD_DRAW },
-
-		{ "wait", CHISL_KEYWORD_WAIT },
-		{ "pause", CHISL_KEYWORD_PAUSE },
-		{ "print", CHISL_KEYWORD_PRINT },
-		{ "show", CHISL_KEYWORD_SHOW },
-		{ "open", CHISL_KEYWORD_OPEN },
-
-		{ "set mouse", CHISL_KEYWORD_MOUSE_SET },
-		{ "move mouse", CHISL_KEYWORD_MOUSE_MOVE },
-		{ "press mouse", CHISL_KEYWORD_MOUSE_PRESS },
-		{ "release mouse", CHISL_KEYWORD_MOUSE_RELEASE },
-		{ "click mouse", CHISL_KEYWORD_MOUSE_CLICK },
-		{ "scroll mouse", CHISL_KEYWORD_MOUSE_SCROLL },
-
-		{ "press key", CHISL_KEYWORD_KEY_PRESS },
-		{ "release key", CHISL_KEYWORD_KEY_RELEASE },
-		{ "type", CHISL_KEYWORD_KEY_TYPE },
-
-		{ "label", CHISL_KEYWORD_LABEL },
-		{ "goto", CHISL_KEYWORD_GOTO },
-
-		{ "record", CHISL_KEYWORD_RECORD },
-		{ "run", CHISL_KEYWORD_RUN },
-		{ "run script", CHISL_KEYWORD_RUN_SCRIPT },
-
-		{ "configure", CHISL_KEYWORD_CONFIGURE }
+		{ "\n", CHISL_PUNCT_END_OF_LINE }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -852,9 +808,9 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_SHOW, "show" },
 		{ CHISL_KEYWORD_OPEN, "open" },
 
-		{ CHISL_KEYWORD_MOUSE_SET, "set mouse" },
-		{ CHISL_KEYWORD_MOUSE_SET_MATCH, "set mouse match" },
-		{ CHISL_KEYWORD_MOUSE_MOVE, "move mouse" },
+		{ CHISL_KEYWORD_MOUSE_SET, "move mouse to" },
+		{ CHISL_KEYWORD_MOUSE_SET_MATCH, "move mouse to match" },
+		{ CHISL_KEYWORD_MOUSE_MOVE, "move mouse by" },
 		{ CHISL_KEYWORD_MOUSE_PRESS, "press mouse" },
 		{ CHISL_KEYWORD_MOUSE_RELEASE, "release mouse" },
 		{ CHISL_KEYWORD_MOUSE_CLICK, "click mouse" },
@@ -872,7 +828,6 @@ CHISL_STRING string_token_type(ChislToken const token)
 
 		{ CHISL_KEYWORD_RECORD, "record" },
 		{ CHISL_KEYWORD_RUN, "run" },
-		{ CHISL_KEYWORD_RUN_SCRIPT, "run script" },
 
 		{ CHISL_KEYWORD_CONFIGURE, "configure" }
 	};
