@@ -47,14 +47,6 @@ typedef WORD CHISL_KEY;
 constexpr CHISL_NUMBER DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 0;
 
-struct Config
-{
-	bool echo = false;
-	WORD quitKey = VK_ESCAPE;
-};
-
-static Config config = {};
-
 /// <summary>
 /// Converts the given string into lower case characters.
 /// </summary>
@@ -348,6 +340,33 @@ tesseract::PageIteratorLevel string_to_pil(CHISL_STRING const& str)
 
 	return tesseract::PageIteratorLevel::RIL_BLOCK;
 }
+
+struct Config
+{
+	bool echo = false;
+	WORD quitKey = VK_ESCAPE;
+
+	int set(CHISL_STRING const& name, CHISL_STRING const& value)
+	{
+		if (name == "echo")
+		{
+			echo = value != "false";
+		}
+		else if (name == "quitKey")
+		{
+			quitKey = string_to_key(value);
+		}
+		else
+		{
+			// no config with name found
+			return 1;
+		}
+
+		return 0;
+	}
+};
+
+static Config config = {};
 
 /// <summary>
 /// Holds data for an image.
@@ -644,11 +663,10 @@ enum ChislToken
 	CHISL_KEYWORD_RUN_SCRIPT = 26011, // run script from <path>
 
 	// CONFIG
-	CHISL_KEYWORD_ECHO = 27000, // echo <on/off>
-	CHISL_KEYWORD_QUIT = 27010, // quit on <key>
+	CHISL_KEYWORD_CONFIGURE = 27000, // configure <setting> to <value>
 
 	CHISL_KEYWORD_FIRST = CHISL_KEYWORD_CAPTURE,
-	CHISL_KEYWORD_LAST = CHISL_KEYWORD_QUIT,
+	CHISL_KEYWORD_LAST = CHISL_KEYWORD_CONFIGURE,
 };
 
 /// <summary>
@@ -692,6 +710,7 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "from", CHISL_FILLER },
 		{ "by", CHISL_FILLER },
 		{ "in", CHISL_FILLER },
+		{ "on", CHISL_FILLER },
 		{ "with", CHISL_FILLER },
 		{ "if", CHISL_FILLER },
 		{ "times", CHISL_FILLER },
@@ -756,8 +775,7 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "run", CHISL_KEYWORD_RUN },
 		{ "run script", CHISL_KEYWORD_RUN_SCRIPT },
 
-		{ "echo", CHISL_KEYWORD_ECHO },
-		{ "quit", CHISL_KEYWORD_QUIT }
+		{ "configure", CHISL_KEYWORD_CONFIGURE }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -846,8 +864,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_RUN, "run" },
 		{ CHISL_KEYWORD_RUN_SCRIPT, "run script" },
 
-		{ CHISL_KEYWORD_ECHO, "echo" },
-		{ CHISL_KEYWORD_QUIT, "quit" }
+		{ CHISL_KEYWORD_CONFIGURE, "configure" }
 	};
 
 	auto found = tokenStrings.find(token);
@@ -924,7 +941,6 @@ CHISL_MATRIX hwnd2mat(HWND hwnd)
 
 	RECT windowsize;    // get the height and width of the screen
 	GetClientRect(hwnd, &windowsize);
-	//GetWindowRect(hwnd, &windowsize);
 
 	srcheight = windowsize.bottom;
 	srcwidth = windowsize.right;
@@ -1488,6 +1504,10 @@ void print(Value const& value)
 	{
 		std::cout << std::get<CHISL_NUMBER>(value) << std::endl;
 	}
+	else if (std::holds_alternative<std::nullptr_t>(value))
+	{
+		std::cout << "null" << std::endl;
+	}
 	else
 	{
 		std::cerr << "Cannot print value." << std::endl;
@@ -1917,7 +1937,7 @@ void record(CHISL_STRING const& path)
 std::vector<Token> tokenize(CHISL_STRING const& str)
 {
 	// split into string tokens
-	CHISL_REGEX re("\"([^\"]*)\"|[+-]?\\d?\\.?\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
+	CHISL_REGEX re("\"([^\"]*)\"|[+-]?\\d?\\.?\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse|all text|all|text))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
 	std::vector<CHISL_STRING> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -2229,9 +2249,13 @@ public:
 		return 0;
 	}
 
-	Value evaluate(std::vector<Token> const& tokens)
+	Value evaluate(std::vector<Token> const& rawTokens)
 	{
-		if (tokens.empty()) return nullptr;
+		if (rawTokens.empty()) return nullptr;
+		if (rawTokens.size() == 1) return rawTokens.front().get_data();
+
+		// shunting yard so it can be evaluated
+		std::vector<Token> tokens = shunting_yard(rawTokens);
 
 		// assume in postfix notation
 		std::vector<Value> operands;
@@ -2355,7 +2379,16 @@ public:
 			}
 		}
 
-		return value_to_string(value);
+		CHISL_STRING str = value_to_string(value);
+
+		if (str.starts_with("\"") && str.ends_with("\""))
+		{
+			return str.substr(1, str.length() - 2);
+		}
+		else
+		{
+			return str;
+		}
 	}
 
 	CHISL_NUMBER get_number(Command const& command, CHISL_STRING const& name) const
@@ -2559,7 +2592,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		[](Command const& command, Program& program) {
 			// evaluate the arguments
 			Value value = program.evaluate(command.get_args(1));
-			program.get_scope().set(program.get_string(command, "var"), value);
+			program.get_scope().set(command.get_arg("var").to_string(), value);
 
 			return 0;
 		})},
@@ -2570,8 +2603,16 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 1, "path", CHISL_TYPE_STRING }
 		},
 		[](Command const& command, Program& program) {
-			std::optional<Value> value = file_read(program.get_string(command, "path"));
-			if (value.has_value()) program.get_scope().set(program.get_string(command, "var"), value.value());
+			CHISL_STRING path = program.get_string(command, "path");
+			std::optional<Value> value = file_read(path);
+			if (value.has_value())
+			{
+				program.get_scope().set(command.get_arg("var").to_string(), value.value());
+			}
+			else
+			{
+				print(CHISL_STRING("Unable to read from path \"").append(path).append("\"."));
+			}
 
 			return 0;
 		}) },
@@ -2612,7 +2653,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 				return 1;
 			}
 
-			program.get_scope().set(program.get_string(command, "destination"), value.value().clone());
+			program.get_scope().set(command.get_arg("destination").to_string(), value.value().clone());
 
 			return 0;
 		}) },
@@ -2640,7 +2681,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 				return 2;
 			}
 
-			CHISL_STRING name = program.get_string(command, "var");
+			CHISL_STRING name = command.get_arg("var").to_string();
 
 			Value value = collection.value().get(index);
 			program.get_scope().set(name, value);
@@ -2662,7 +2703,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 				return 1;
 			}
 
-			CHISL_STRING name = program.get_string(command, "var");
+			CHISL_STRING name = command.get_arg("var").to_string();
 
 			CHISL_INT count = static_cast<CHISL_INT>(collection.value().count());
 			program.get_scope().set(name, count);
@@ -2677,7 +2718,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			Image image = screenshot();
-			program.get_scope().set(program.get_string(command, "var"), image);
+			program.get_scope().set(command.get_arg("var").to_string(), image);
 
 			return 0;
 		}) },
@@ -2693,11 +2734,11 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		[](Command const& command, Program& program) {
 			Image image = screenshot();
 			image = crop(image,
-				program.get_number(command, "x"),
-				program.get_number(command, "y"),
-				program.get_number(command, "w"),
-				program.get_number(command, "h"));
-			program.get_scope().set(program.get_string(command, "var"), image);
+				program.get_int(command, "x"),
+				program.get_int(command, "y"),
+				program.get_int(command, "w"),
+				program.get_int(command, "h"));
+			program.get_scope().set(command.get_arg("var").to_string(), image);
 
 			return 0;
 		}) },
@@ -2718,10 +2759,10 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			}
 
 			image = crop(image.value(),
-				program.get_number(command, "x"),
-				program.get_number(command, "y"),
-				program.get_number(command, "w"),
-				program.get_number(command, "h"));
+				program.get_int(command, "x"),
+				program.get_int(command, "y"),
+				program.get_int(command, "w"),
+				program.get_int(command, "h"));
 			program.get_scope().set(command.get_arg("var").to_string(), image.value());
 
 			return 0;
@@ -2867,7 +2908,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 3, "image", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			CHISL_STRING templateText = program.get_string(command, "template");
+			CHISL_STRING templateText = program.get_string(command, "text");
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
@@ -2897,7 +2938,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 4, "threshold", CHISL_TYPE_NUMBER }
 		},
 		[](Command const& command, Program& program) {
-			CHISL_STRING templateText = program.get_string(command, "template");
+			CHISL_STRING templateText = program.get_string(command, "text");
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
@@ -2928,7 +2969,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 3, "image", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			CHISL_STRING templateText = program.get_string(command, "template");
+			CHISL_STRING templateText = program.get_string(command, "text");
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
@@ -2959,7 +3000,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 4, "threshold", CHISL_TYPE_NUMBER }
 		},
 		[](Command const& command, Program& program) {
-			CHISL_STRING templateText = program.get_string(command, "template");
+			CHISL_STRING templateText = program.get_string(command, "text");
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
@@ -3509,31 +3550,18 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			return 0;
 		}) },
 
-	{ CHISL_KEYWORD_ECHO, CommandTemplate(CHISL_KEYWORD_ECHO,
-		"echo " INPUT_PATTERN_BOOL "\\.\\s*$",
+	{ CHISL_KEYWORD_CONFIGURE, CommandTemplate(CHISL_KEYWORD_CONFIGURE,
+		"configure " INPUT_PATTERN_VARIABLE " to " INPUT_PATTERN_VARIABLE "\\.\\s*$",
 		{
-		{ 0, "value", CHISL_TYPE_BOOL }
-		},
-		[](Command const& command, Program& program) {
-			// get value
-			CHISL_STRING value = program.get_string(command, "value");
-
-			config.echo = string_to_bool(value);
-
-			return 0;
-		}) },
-	{ CHISL_KEYWORD_QUIT, CommandTemplate(CHISL_KEYWORD_QUIT,
-		"quit on " INPUT_PATTERN_KEY "\\.\\s*$",
-		{
-		{ 0, "key", CHISL_TYPE_KEY }
+		{ 0, "setting", CHISL_TYPE_KEY },
+		{ 1, "value", CHISL_TYPE_KEY }
 		},
 		[](Command const& command, Program& program) {
 			// get key
-			CHISL_KEY key = string_to_key(program.get_string(command, "key"));
+			CHISL_STRING setting = command.get_arg("setting").to_string();
+			CHISL_STRING value = program.get_string(command, "value");
 
-			config.quitKey = key;
-
-			return 0;
+			return config.set(setting, value);
 		}) },
 };
 
