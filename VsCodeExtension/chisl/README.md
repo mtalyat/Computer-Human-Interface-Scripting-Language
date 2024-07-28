@@ -16,6 +16,10 @@ None as of now.
 
 ## Release Notes
 
+### 1.2.0
+
+- Add support for CHISL 1.3.0.
+
 ### 1.1.2
 
 - Fix syntax coloring for \_\_\_ `mouse` and \_\_\_ `key`.
@@ -25,8 +29,3 @@ None as of now.
 
 - Add support for CHISL 1.2.0.
 - Add syntax support for Count.
-
-### 1.1.0
-
-- Add support for CHISL 1.1.0.
-- Add "Run CHISL File" command.

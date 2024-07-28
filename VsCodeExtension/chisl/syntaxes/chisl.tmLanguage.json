@@ -3,7 +3,10 @@
 	"name": "CHISL",
 	"patterns": [
 		{
-			"include": "#commentBlocks"
+			"include": "#commentLine"
+		},
+		{
+			"include": "#commentBlock"
 		},
 		{
 			"include": "#keywords"
@@ -25,21 +28,26 @@
 		}
 	],
 	"repository": {
-		"commentBlocks": {
+		"commentLine": {
+			"name": "comment.line.chisl",
+			"begin": "#[^-]",
+			"end": "[\r\n$]"
+		},
+		"commentBlock": {
 			"name": "comment.block.chisl",
-			"begin": "#",
-			"end": "($|\n|#)"
+			"begin": "#-",
+			"end": "-#"
 		},
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.chisl",
-				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count|Echo|mouse|key|at|to|from|by|in|with|if|times|delay)\\b"
+				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count|Configure|mouse|key|at|to|from|by|in|with|if|times|delay|on)\\b"
 			}]
 		},
 		"words": {
 			"patterns": [{
 				"name": "keyword.other.chisl",
-				"match": "(?i)\\b(left|middle|right|block|paragraph|symbol|line|word|on|off|h|m|s|ms|escape|space|enter|return|tab|shift|ctrl|alt|left|up|right|down|backspace|back)\\b"
+				"match": "(?i)\\b(left|middle|right|block|paragraph|symbol|line|word|true|false|h|m|s|ms|escape|space|enter|return|tab|shift|ctrl|alt|left|up|right|down|backspace|back)\\b"
 			}]
 		},
 		"strings": {
