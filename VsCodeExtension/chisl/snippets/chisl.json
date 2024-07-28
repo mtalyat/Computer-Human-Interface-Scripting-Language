@@ -244,15 +244,22 @@
         ],
         "description": "Sends a key up event to the OS."
     },
-    "Type key": {
-        "prefix": "type key",
+    "Type": {
+        "prefix": "type",
         "body": [
             "Type ${1:value}. "
         ],
         "description": "Sends a series of key up/downs of the phrase or variable to the OS with no delay."
     },
-    "Type key with delay": {
-        "prefix": "type key with",
+    "Type key": {
+        "prefix": "type key",
+        "body": [
+            "Type ${1|escape,space,enter,return,tab,shift,ctrl,alt,left,up,right,down,backspace,back|}. "
+        ],
+        "description": "Sends a key up/downs of the phrase or variable to the OS."
+    },
+    "Type with delay": {
+        "prefix": "type with delay",
         "body": [
             "Type ${1:value} with ${2:delay} delay. "
         ],

@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.1.3
+
+- Add autocomplete to `type key` snippet.
+- Add `type` snippet for strings.
+
 ## 1.1.2
 
 - Fix syntax coloring for \_\_\_ `mouse` and \_\_\_ `key`.
