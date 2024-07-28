@@ -76,7 +76,7 @@
 		"variables": {
 			"patterns": [{
 				"name": "variable.name.chisl",
-				"match": "\\b[a-zA-Z][a-zA-Z0-9]*\\b"
+				"match": "\\b[a-zA-Z]\\w*\\b"
 			}]
 		}
 	},
