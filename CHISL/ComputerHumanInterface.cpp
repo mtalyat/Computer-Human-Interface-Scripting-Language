@@ -97,6 +97,19 @@ CHISL_STRING string_trim(const CHISL_STRING& str) {
 		return (start < end ? CHISL_STRING(start, end) : CHISL_STRING());
 }
 
+CHISL_STRING string_replace(const CHISL_STRING& text, const CHISL_STRING& from, const CHISL_STRING& to)
+{
+	CHISL_STRING input = text;
+
+	size_t pos = 0;
+	while ((pos = input.find(from, pos)) != std::string::npos) {
+		input.replace(pos, from.length(), to);
+		pos += to.length();
+	}
+
+	return input;
+}
+
 /// <summary>
 /// Converts a string into a key.
 /// </summary>
@@ -168,7 +181,6 @@ WORD string_to_key(const CHISL_STRING& keyString) {
 	}
 	else
 	{
-		std::cerr << "Unknown key: " << keyString << std::endl;
 		return 0;
 	}
 }
@@ -365,8 +377,6 @@ struct Config
 		return 0;
 	}
 };
-
-static Config config = {};
 
 /// <summary>
 /// Holds data for an image.
@@ -1038,6 +1048,11 @@ std::optional<Image> image_read(CHISL_STRING const& path)
 	}
 
 	return std::nullopt;
+}
+
+bool file_exists(CHISL_STRING const& path)
+{
+	return std::filesystem::exists(path);
 }
 
 /// <summary>
@@ -1937,7 +1952,7 @@ void record(CHISL_STRING const& path)
 std::vector<Token> tokenize(CHISL_STRING const& str)
 {
 	// split into string tokens
-	CHISL_REGEX re("\"([^\"]*)\"|[+-]?\\d?\\.?\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse|all text|all|text))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
+	CHISL_REGEX re(RAW_INPUT_PATTERN_STRING "|[+-]?\\d?\\.?\\d+|\\b[\\w.:\\\\]+\\b( (key|mouse|all text|all|text))?|[<>]=?|[!=]=|[\\.\\+\\-\\*\\/#\\(\\)]|\\n");
 	std::vector<CHISL_STRING> strTokens = string_split(str, re);
 
 	// parse into tokens
@@ -2032,8 +2047,21 @@ public:
 	ChislToken get_token() const { return m_template->get_token(); }
 	CHISL_INDEX get_row() const { return m_row; }
 	Parameter const& get_param(CHISL_STRING const& name) const { return m_template->get_parameter(name); }
-	Token const& get_arg(CHISL_STRING const& name) const { return m_args.at(m_template->get_parameter(name).index); }
-	Token const& get_arg(CHISL_INDEX const index) const { return m_args.at(index); }
+	Token const& get_arg(CHISL_STRING const& name) const
+	{
+		CHISL_INDEX index = m_template->get_parameter(name).index;
+
+		return get_arg(index);
+	}
+	Token const& get_arg(CHISL_INDEX const index) const
+	{
+		if (index >= m_args.size())
+		{
+			return Token();
+		}
+
+		return m_args.at(index);
+	}
 	std::vector<Token> get_args(CHISL_INDEX const start) const { return std::vector<Token>(m_args.begin() + start, m_args.end()); }
 	CHISL_INDEX get_arg_count() const { return static_cast<CHISL_INDEX>(m_args.size()); }
 
@@ -2146,6 +2174,7 @@ private:
 	bool m_skipIncrement;
 	CHISL_INDEX m_index;
 	Scope m_scope;
+	Config m_config;
 
 	static std::unordered_map<ChislToken, CommandTemplate> s_commandTemplates;
 
@@ -2215,6 +2244,7 @@ public:
 	CHISL_INDEX get_index() const { return m_index; }
 	Scope& get_scope() { return m_scope; }
 	Scope const& get_scope() const { return m_scope; }
+	Config& get_config() { return m_config; }
 	void set_index(CHISL_INDEX const index) { m_index = index; }
 
 	int run()
@@ -2224,13 +2254,7 @@ public:
 
 		for (; m_index < lines; m_index++)
 		{
-			if (m_skipIncrement)
-			{
-				m_skipIncrement = false;
-				m_index--;
-			}
-
-			if (config.echo)
+			if (m_config.echo)
 			{
 				std::cout << m_commands.at(m_index).to_string() << std::endl;
 			}
@@ -2238,8 +2262,15 @@ public:
 			// execute the command
 			execute(m_commands.at(m_index));
 
+			// go back one if needed
+			if (m_skipIncrement)
+			{
+				m_skipIncrement = false;
+				m_index--;
+			}
+
 			// check for cancelation using escape
-			if (check_for_key_input(config.quitKey)) // & 0x8000 checks if down (MSB = 1 when down)
+			if (check_for_key_input(m_config.quitKey)) // & 0x8000 checks if down (MSB = 1 when down)
 			{
 				std::cout << "Program quit by user." << std::endl;
 				break;
@@ -2383,12 +2414,11 @@ public:
 
 		if (str.starts_with("\"") && str.ends_with("\""))
 		{
-			return str.substr(1, str.length() - 2);
+			str = str.substr(1, str.length() - 2);
+			str = string_replace(str, "\\\"", "\"");
 		}
-		else
-		{
-			return str;
-		}
+
+		return str;
 	}
 
 	CHISL_NUMBER get_number(Command const& command, CHISL_STRING const& name) const
@@ -3158,10 +3188,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			Value value = program.get_scope().get(command.get_arg("value").to_string());
-			CHISL_STRING arg = value_to_string(value);
-			if (arg.starts_with("\"") && arg.ends_with("\""))
+			CHISL_STRING arg = program.get_string(command, "value");
+			if (std::holds_alternative<std::nullptr_t>(value))
 			{
-				std::cout << arg.substr(1, arg.length() - 2) << std::endl;
+				show(arg);
+			}
+			else if (arg.starts_with("\"") && arg.ends_with("\""))
+			{
+				show(arg.substr(1, arg.length() - 2));
 			}
 			else
 			{
@@ -3184,7 +3218,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		}) },
 
 	{ CHISL_KEYWORD_MOUSE_SET, CommandTemplate(CHISL_KEYWORD_MOUSE_SET,
-		"set mouse to " INPUT_PATTERN_INT " " INPUT_PATTERN_INT "\\.\\s*$",
+		"move mouse to " INPUT_PATTERN_INT " " INPUT_PATTERN_INT "\\.\\s*$",
 		{
 		{ 0, "x", CHISL_TYPE_INT },
 		{ 1, "y", CHISL_TYPE_INT }
@@ -3198,7 +3232,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			return 0;
 		}) },
 	{ CHISL_KEYWORD_MOUSE_SET_MATCH, CommandTemplate(CHISL_KEYWORD_MOUSE_SET_MATCH,
-		"set mouse to " INPUT_PATTERN_VARIABLE "\\.\\s*$",
+		"move mouse to " INPUT_PATTERN_VARIABLE "\\.\\s*$",
 		{
 		{ 0, "match", CHISL_TYPE_VARIABLE }
 		},
@@ -3439,26 +3473,17 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			CHISL_INDEX delay = program.get_time(command, "time", "unit");
 
-			// if in quotes, type as string
-			if (str.starts_with("\"") && str.ends_with("\""))
-			{
-				// type string
-				key_type_string(str.substr(1, str.length() - 2), delay);
-			}
-			else
-			{
-				// type key
-				WORD key = string_to_key(str);
+			// type key
+			WORD key = string_to_key(str);
 
-				if (key)
-				{
-					key_type(key);
-					return 0;
-				}
-
-				// must be a string
-				key_type_string(str, delay);
+			if (key)
+			{
+				key_type(key);
+				return 0;
 			}
+
+			// must be a string
+			key_type_string(str, delay);
 
 			return 0;
 		}) },
@@ -3479,7 +3504,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			// set working index to label position
-			CHISL_STRING label = program.get_string(command, "label");
+			CHISL_STRING label = command.get_arg("label").to_string();
 			program.goto_label(label);
 
 			return 0;
@@ -3492,13 +3517,13 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			// check condition
-			Value value = program.evaluate(command.get_args(2));
+			Value value = program.evaluate(command.get_args(1));
 
 			if ((std::holds_alternative<CHISL_NUMBER>(value) && std::get<CHISL_NUMBER>(value)) ||
 				(std::holds_alternative<CHISL_INT>(value) && std::get<CHISL_INT>(value)))
 			{
 				// set working index to label position
-				CHISL_STRING label = program.get_string(command, "label");
+				CHISL_STRING label = command.get_arg("label").to_string();
 				program.goto_label(label);
 			}
 
@@ -3525,26 +3550,30 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 0, "program", CHISL_TYPE_STRING }
 		},
 		[](Command const& command, Program& program) {
-			// get text
-			CHISL_STRING code = program.get_string(command, "program");
+			// get arg
+			CHISL_STRING str = program.get_string(command, "program");
+
+			// if arg is a path, load and run that
+			if (file_exists(str))
+			{
+				// load from path
+				std::optional<CHISL_STRING> text = text_read(str);
+
+				if (!text.has_value())
+				{
+					return 1;
+				}
+
+				str = text.value();
+			}
+			else
+			{
+				// load from variable/string
+				str = program.get_string(command, "program");
+			}
 
 			// run program from string
-			Program subProgram(code);
-			subProgram.run();
-
-			return 0;
-		}) },
-	{ CHISL_KEYWORD_RUN_SCRIPT, CommandTemplate(CHISL_KEYWORD_RUN_SCRIPT,
-		"run script from " INPUT_PATTERN_STRING "\\.\\s*$",
-		{
-		{ 0, "path", CHISL_TYPE_STRING }
-		},
-		[](Command const& command, Program& program) {
-			// get path
-			CHISL_STRING path = program.get_string(command, "path");
-
-			// run program at path
-			Program subProgram = Program::from_file(path);
+			Program subProgram(str);
 			subProgram.run();
 
 			return 0;
@@ -3561,7 +3590,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			CHISL_STRING setting = command.get_arg("setting").to_string();
 			CHISL_STRING value = program.get_string(command, "value");
 
-			return config.set(setting, value);
+			return program.get_config().set(setting, value);
 		}) },
 };
 
