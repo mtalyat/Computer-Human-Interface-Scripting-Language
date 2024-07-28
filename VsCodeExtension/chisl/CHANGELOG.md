@@ -2,7 +2,7 @@
 
 ## 1.1.3
 
-- Add autocomplete to `type key` snippet.
+- Add autocomplete to `type key`, `press key` and `release key` snippets.
 - Add `type` snippet for strings.
 
 ## 1.1.2

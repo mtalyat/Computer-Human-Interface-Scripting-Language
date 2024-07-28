@@ -233,14 +233,14 @@
     "Press key": {
         "prefix": "press key",
         "body": [
-            "Press key ${1:key}. "
+            "Press key ${1:|escape,space,enter,return,tab,shift,ctrl,alt,left,up,right,down,backspace,back,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z|}. "
         ],
         "description": "Sends a key down event to the OS."
     },
     "Release key": {
         "prefix": "release key",
         "body": [
-            "Release key ${1:key}. "
+            "Release key ${1|escape,space,enter,return,tab,shift,ctrl,alt,left,up,right,down,backspace,back,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z|}. "
         ],
         "description": "Sends a key up event to the OS."
     },
@@ -254,7 +254,7 @@
     "Type key": {
         "prefix": "type key",
         "body": [
-            "Type ${1|escape,space,enter,return,tab,shift,ctrl,alt,left,up,right,down,backspace,back|}. "
+            "Type ${1|escape,space,enter,return,tab,shift,ctrl,alt,left,up,right,down,backspace,back,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z|}. "
         ],
         "description": "Sends a key up/downs of the phrase or variable to the OS."
     },
