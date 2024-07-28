@@ -1,5 +1,8 @@
 # Change log
 
+## 1.3.1
+- Update installer to ignore extra dll files.
+
 ## 1.3.0
 - Added `Configure` command for editing settings.
 - Remove echo. Now able to use with `Configure`.

@@ -47,11 +47,6 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
 Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\opencv_videoio_ffmpeg4100_64.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\opencv_videoio_msmf4100_64.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\opencv_videoio_msmf4100_64d.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\opencv_world4100.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\opencv_world4100d.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
