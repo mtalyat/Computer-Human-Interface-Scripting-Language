@@ -89,9 +89,8 @@ CHISL is a scripting language for controlling your device. It harnesses the powe
 
 ### Example
     Capture screen.
-    Save screen to "screen.png".
-    Load windows from "windows.png".
-    Find match by windows in screen.
+    Load windowsIcon from "windows.png".
+    Find match by windowsIcon in screen.
     Draw match on screen.
     Save screen to "found_it.png".
     Print "Found it!".
