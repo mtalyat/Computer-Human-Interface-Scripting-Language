@@ -2,133 +2,133 @@
     "Capture": {
         "prefix": "capture",
         "body": [
-            "Capture ${1:name}. "
+            "Capture ${1:var}. "
         ],
         "description": "Captures all of the screen and stores it in `name`."
     },
     "Capture at": {
         "prefix": "capture at",
         "body": [
-            "Capture ${1:name} at ${2:x} ${3:y} ${4:width} ${5:height}. "
+            "Capture ${1:var} at ${2:x} ${3:y} ${4:width} ${5:height}. "
         ],
         "description": "Captures part of the screen and stores it in `name`."
     },
     "Set": {
         "prefix": "set",
         "body": [
-            "Set ${1:name} to ${2:value}. "
+            "Set ${1:var} to ${2:value}. "
         ],
         "description": "Sets a variable to a value."
     },
     "Get": {
         "prefix": "get",
         "body": [
-            "Get ${1:name} from ${2:collection} at ${3:index}. "
+            "Get ${1:var} from ${2:collection} at ${3:index}. "
         ],
         "description": "Gets the value from a collection at the `index` and stores it in `name`."
     },
     "Load": {
         "prefix": "load",
         "body": [
-            "Load ${1:name} from ${2:path}. "
+            "Load ${1:var} from ${2:path}. "
         ],
         "description": "Load a file from the path into the variable."
     },
     "Save": {
         "prefix": "save",
         "body": [
-            "Save ${1:name} to ${2:path}. "
+            "Save ${1:var} to ${2:path}. "
         ],
         "description": "Saves a variable to the disk."
     },
     "Delete": {
         "prefix": "delete",
         "body": [
-            "Delete ${1:name}. "
+            "Delete ${1:var}. "
         ],
         "description": "Deletes the variable with the name."
     },
     "Copy": {
         "prefix": "copy",
         "body": [
-            "Copy ${1:name} to ${2:destination}. "
+            "Copy ${1:var} to ${2:destination}. "
         ],
         "description": "Copies the value of `variable` to `name`."
     },
     "Crop": {
         "prefix": "crop",
         "body": [
-            "Crop ${1:name} at ${2:x} ${3:y} ${4:width} ${5:height}. "
+            "Crop ${1:var} at ${2:x} ${3:y} ${4:width} ${5:height}. "
         ],
         "description": "Crops the image in `name` to the x y width height."
     },
     "Find": {
         "prefix": "find",
         "body": [
-            "Find ${1:name} by ${2:template} in ${3:image}. "
+            "Find ${1:var} by ${2:template} in ${3:image}. "
         ],
         "description": "Finds the best match of `template` within `image` equal to or above the default threshold."
     },
     "Find with": {
         "prefix": "find with",
         "body": [
-            "Find ${1:name} by ${2:template} in ${3:image} with ${4:threshold}. "
+            "Find ${1:var} by ${2:template} in ${3:image} with ${4:threshold}. "
         ],
         "description": "Finds the best match of `template` within `image` equal to or above the given threshold."
     },
     "Find all": {
         "prefix": "find all",
         "body": [
-            "Find all ${1:name} by ${2:template} in ${3:image}. "
+            "Find all ${1:var} by ${2:template} in ${3:image}. "
         ],
         "description": "Finds all possible matches equal to or above the default threshold."
     },
     "Find all with": {
         "prefix": "find all with",
         "body": [
-            "Find all ${1:name} by ${2:template} in ${3:image} with ${4:threshold}. "
+            "Find all ${1:var} by ${2:template} in ${3:image} with ${4:threshold}. "
         ],
         "description": "Finds all possible matches equal to or above the given threshold."
     },
     "Find text": {
         "prefix": "find text",
         "body": [
-            "Find text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image}. "
+            "Find text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:template} in ${4:image}. "
         ],
         "description": "Finds the best match of text `template` within `image` equal to or above the default threshold."
     },
     "Find text with": {
         "prefix": "find text with",
         "body": [
-            "Find text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image} with ${5:threshold}. "
+            "Find text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:template} in ${4:image} with ${5:threshold}. "
         ],
         "description": "Finds the best match of text `template` within `image` equal to or above the given threshold."
     },
     "Find all text": {
         "prefix": "find all text",
         "body": [
-            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image}. "
+            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:template} in ${4:image}. "
         ],
         "description": "Finds all possible text matches equal to or above the default threshold."
     },
     "Find all text with": {
         "prefix": "find all text with",
         "body": [
-            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:name} by ${3:template} in ${4:image} with ${5:threshold}. "
+            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:template} in ${4:image} with ${5:threshold}. "
         ],
         "description": "Finds all possible text matches equal to or above the given threshold."
     },
     "Read": {
         "prefix": "read",
         "body": [
-            "Read ${1:name} from ${2:image}. "
+            "Read ${1:var} from ${2:image}. "
         ],
         "description": "Reads all of the text in `image`."
     },
     "Draw": {
         "prefix": "draw",
         "body": [
-            "Draw ${1:name} on ${2:image}. "
+            "Draw ${1:var} on ${2:image}. "
         ],
         "description": "Draws an outline of `match` onto `image`."
     },
@@ -167,22 +167,22 @@
         ],
         "description": "Shows the text or variable."
     },
-    "Set mouse to position": {
-        "prefix": "set mouse to",
+    "Move mouse to position": {
+        "prefix": "move to",
         "body": [
             "Set mouse to ${1:x} ${2:y}. "
         ],
         "description": "Sets the mouse to the position."
     },
-    "Set mouse to match": {
-        "prefix": "set mouse",
+    "Move mouse to match": {
+        "prefix": "move to match",
         "body": [
             "Set mouse to ${1:match}. "
         ],
         "description": "Sets the mouse to the match position."
     },
     "Move mouse by": {
-        "prefix": "move mouse",
+        "prefix": "move by",
         "body": [
             "Move mouse by ${1:x} ${2:y}. "
         ],
@@ -249,7 +249,7 @@
         "body": [
             "Type ${1:value}. "
         ],
-        "description": "Sends a series of key up/downs of the phrase or variable to the OS."
+        "description": "Sends a series of key up/downs of the phrase or variable to the OS with no delay."
     },
     "Type key with delay": {
         "prefix": "type key with",
@@ -289,16 +289,9 @@
     "Run": {
         "prefix": "run",
         "body": [
-            "Run ${1:name}. "
+            "Run ${1:var}. "
         ],
-        "description": "Runs a script loaded into a variable."
-    },
-    "Run script": {
-        "prefix": "run script",
-        "body": [
-            "Run script from ${1:path}. "
-        ],
-        "description": "Runs a script from a file at the given `path`."
+        "description": "Runs a script from a string, path, or variable."
     },
     "Open": {
         "prefix": "open",
@@ -307,11 +300,11 @@
         ],
         "description": "Opens a file or directory."
     },
-    "Echo": {
-        "prefix": "echo",
+    "Configure": {
+        "prefix": "configure",
         "body": [
-            "Echo ${1|on,off|}. "
+            "Configure ${1:setting} to ${2:value}."
         ],
-        "description": "Turns echoing commands on or off."
+        "description": "Sets a setting to a specified value."
     }
 }
