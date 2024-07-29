@@ -87,7 +87,16 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 |---|---|
 | `Record to <path>.` | Records keyboard and mouse actions taken to a file at the given path. |
 | `Run <var>.` | Runs a script loaded into a variable. |
+
+### Configuration
+| Command | Description |
+|---|---|
 | `Configure <setting> to <value>.` | Turns echoing commands on or off. |
+
+### Testing
+| Command | Description |
+|---|---|
+| `Test <test> expect <expected>.` | Runs a test and records the results. |
 
 ### Built-in
 

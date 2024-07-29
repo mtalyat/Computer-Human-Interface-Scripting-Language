@@ -313,5 +313,12 @@
             "Configure ${1:setting} to ${2:value}."
         ],
         "description": "Sets a setting to a specified value."
+    },
+    "Test": {
+        "prefix": "test",
+        "body": [
+            "Test ${1:test} expect ${2:expected}."
+        ],
+        "description": "Runs a test and records the results."
     }
 }
