@@ -1,5 +1,11 @@
 # Change log
 
+## 1.4.0
+- Add `OUTPUT`, `RESULT`, `PASS_COUNT` and `FAIL_COUNT` constants.
+- Add printing error codes for invalid commands.
+- Add `Test` command.
+- Add operators for strings.
+
 ## 1.3.1
 - Update installer to ignore extra dll files.
 

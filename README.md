@@ -9,7 +9,7 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 - Control the keyboard and mouse.
 - Identify and act upon elements and text on the screen.
 
-## Syntax
+## Code
 
 ### Comments
 | Command | Description |
@@ -88,6 +88,17 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | `Record to <path>.` | Records keyboard and mouse actions taken to a file at the given path. |
 | `Run <var>.` | Runs a script loaded into a variable. |
 | `Configure <setting> to <value>.` | Turns echoing commands on or off. |
+
+### Built-in
+
+There are some constants that are built into CHISL and controlled by the program.
+
+| Constant | Description |
+|---|---|
+| `OUTPUT` | Holds the string of the output from the most recently ran command, if applicable. |
+| `RESULT` | Holds the string of the result from the most recently ran command, if applicable. |
+| `PASS_COUNT` | The number of passes from `Test` commands that have been ran. |
+| `FAIL_COUNT` | The number of fails from `Test` commands that have been ran. |
 
 ### Example
     Capture screen.
