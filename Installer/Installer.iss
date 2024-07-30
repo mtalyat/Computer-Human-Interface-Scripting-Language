@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "CHISL"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.4.0"
 #define MyAppPublisher "Mitchell Talyat"
 #define MyAppURL "https://github.com/mtalyat/Computer-Human-Interface-Scripting-Language"
 #define MyAppExeName "chisl.exe"
@@ -37,7 +37,7 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 OutputBaseFilename=chisl_setup
-SetupIconFile=C:\Users\mitch\source\repos\ComputerHumanInterface\Images\icon.ico
+SetupIconFile=..\Images\icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -46,7 +46,8 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\Users\mitch\source\repos\ComputerHumanInterface\CHISL\x64\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\CHISL\x64\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\CHISL\x64\Release\tessdata"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
