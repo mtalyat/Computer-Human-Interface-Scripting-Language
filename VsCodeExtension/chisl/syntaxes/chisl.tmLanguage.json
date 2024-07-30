@@ -41,13 +41,13 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.chisl",
-				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count|Configure|Test|mouse|key|at|to|from|by|in|with|if|times|delay|on|expect)\\b"
+				"match": "(?i)\\b(Capture|Set|Get|Load|Save|Delete|Copy|Crop|Find( all)?( text)?|Draw|Wait|Pause|Print|Show|Set|Move|Press|Release|Click|Scroll|Type|Label|Goto|Read|Record|Run|Open|Count|Configure|Test|Input|Countdown|Exit|mouse|key|at|to|from|by|in|with|if|times|delay|on|expect)\\b"
 			}]
 		},
 		"words": {
 			"patterns": [{
 				"name": "keyword.other.chisl",
-				"match": "(?i)\\b(left|middle|right|block|paragraph|symbol|line|word|true|false|h|m|s|ms|escape|space|enter|return|tab|shift|ctrl|alt|left|up|right|down|backspace|back|OUTPUT|RESULT|PASS_COUNT|FAIL_COUNT)\\b"
+				"match": "(?i)\\b(and|or|left|middle|right|block|paragraph|symbol|line|word|true|false|h|m|s|ms|escape|space|enter|return|tab|shift|ctrl|alt|left|up|right|down|backspace|back|black|red|green|yellow|blue|magenta|cyan|white|OUTPUT|RESULT|PASS_COUNT|FAIL_COUNT)\\b"
 			}]
 		},
 		"strings": {

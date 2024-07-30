@@ -10,6 +10,7 @@ Load var from "path".
 Save name to path. 
 Save var to "path". 
 Delete name. 
+Delete at "path". 
 Copy name to destination. 
 Crop name at 0 0 1 1. 
 Find name by template in image. 
@@ -24,8 +25,12 @@ Read name from image.
 Draw name on image. 
 Draw 0 0 1 1 on image. 
 Wait 100 ms. 
+Countdown 100 ms. 
 Pause. 
 Print value. 
+Print "value". 
+Print value in red. 
+Print value in black with black. 
 Show value. 
 Move mouse to match. 
 Move mouse to x y. 
@@ -51,3 +56,10 @@ Record to path.
 Run name. 
 Open path. 
 Configure echo to true.
+Exit. 
+Input to var. 
+Input prompt to var. 
+Set x to 5 + 1.
+Set x to 5 == 1.
+Set x to 5 and 1.
+Set x to 5 or 1.

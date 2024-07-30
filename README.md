@@ -50,8 +50,8 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 ### Utility
 | Command | Description |
 |---|---|
-| `Wait <time> <ms/s/m/h>.` | Pauses for the given number of milliseconds. |
-| `Countdown <time> <ms/s/m/h>.` | Pauses for the given number of milliseconds, and shows the time left in real time. |
+| `Wait <time> <ms/s/m/h>.` | Pauses for the given amount of time. |
+| `Countdown <time> <ms/s/m/h>.` | Pauses for the given amount of time, and shows the time left in real time. |
 | `Pause.` | Pauses until the user hits a key. |
 | `Print <value>.` | Prints the text or variable to the console. |
 | `Print <value> in <black/red/green/yellow/blue/magenta/cyan/white>.` | Prints the text or variable to the console in the foreground color. |

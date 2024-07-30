@@ -48,6 +48,13 @@
         ],
         "description": "Deletes the variable with the name."
     },
+    "Delete at": {
+        "prefix": "delete at",
+        "body": [
+            "Delete at ${1:path}. "
+        ],
+        "description": "Deletes the file or directory at `path`."
+    },
     "Copy": {
         "prefix": "copy",
         "body": [
@@ -144,7 +151,14 @@
         "body": [
             "Wait ${1:time} ${2|ms,s,m,h|}. "
         ],
-        "description": "Pauses for the given number of milliseconds."
+        "description": "Pauses for the given amount of time."
+    },
+    "Countdown": {
+        "prefix": "countdown",
+        "body": [
+            "Countdown ${1:time} ${2|ms,s,m,h|}. "
+        ],
+        "description": "Pauses for the given amount of time, and shows the time left in real time."
     },
     "Pause": {
         "prefix": "pause",
@@ -160,12 +174,40 @@
         ],
         "description": "Prints the text or variable to the console."
     },
+    "Print with foreground color": {
+        "prefix": "print fg",
+        "body": [
+            "Print ${1:value} in ${2|white,black,red,green,yellow,blue,magenta,cyan|}. "
+        ],
+        "description": "Prints the text or variable to the console."
+    },
+    "Print with foreground and background colors": {
+        "prefix": "print fg bg",
+        "body": [
+            "Print ${1:value} in ${2|white,black,red,green,yellow,blue,magenta,cyan|} with ${3|black,red,green,yellow,blue,magenta,cyan,white|}. "
+        ],
+        "description": "Prints the text or variable to the console."
+    },
     "Show": {
         "prefix": "show",
         "body": [
             "Show ${1:value}. "
         ],
-        "description": "Shows the text or variable."
+        "description": "Shows the text or variable, and pauses for input."
+    },
+    "Input": {
+        "prefix": "input",
+        "body": [
+            "Input to ${1:var}. "
+        ],
+        "description": "Reads input from the user."
+    },
+    "Prompt input": {
+        "prefix": "input prompt",
+        "body": [
+            "Input ${1:prompt} to ${2:var}. "
+        ],
+        "description": "Reads input from the user with an inline prompt."
     },
     "Move mouse to position": {
         "prefix": "move to",
@@ -285,6 +327,13 @@
             "Goto ${1:label} if ${2:condition}. "
         ],
         "description": "Goes to the label only if the `condition` is true."
+    },
+    "Exit": {
+        "prefix": "exit",
+        "body": [
+            "Exit. "
+        ],
+        "description": "Quits the program."
     },
     "Record": {
         "prefix": "record",
