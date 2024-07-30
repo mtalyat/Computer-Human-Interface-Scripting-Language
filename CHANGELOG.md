@@ -6,6 +6,7 @@
 - Add `Input` command. Accepts input from the user.
 - Add `Countdown` command. Waits, but shows the time remaining in real time.
 - Add `Exit` command. Quits the program.
+- Add `Delete at` command. Deletes a file or folder at the given path.
 - Add `and` and `or` operators.
 - Add operators for strings.
 - Add printing color. Allows for foreground and background. Allows for common word colors. Ex. `Print "text" in red.` or `Print "text" in red with white.`
