@@ -11,6 +11,7 @@
 #include <regex>
 #include <fstream>
 #include <chrono>
+#include <thread>
 #include <format>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
@@ -31,7 +32,7 @@ typedef WORD CHISL_KEY;
 #define RAW_INPUT_PATTERN_MOUSE "left|middle|right"
 #define RAW_INPUT_PATTERN_KEY "escape|space|enter|return|tab|shift|ctrl|alt|left|up|right|down|backspace|back"
 #define RAW_INPUT_PATTERN_TEXT "block|paragraph|symbol|line|word"
-#define RAW_INPUT_PATTERN_BOOL "on|off"
+#define RAW_INPUT_PATTERN_COLOR "black|red|green|yellow|blue|magenta|cyan|white"
 
 #define INPUT_PATTERN_VARIABLE "(" RAW_INPUT_PATTERN_VARIABLE ")"
 #define INPUT_PATTERN_NUMBER "(" RAW_INPUT_PATTERN_NUMBER "|" RAW_INPUT_PATTERN_VARIABLE ")"
@@ -43,7 +44,7 @@ typedef WORD CHISL_KEY;
 #define INPUT_PATTERN_KEY_OR_STRING "(" RAW_INPUT_PATTERN_KEY "|" RAW_INPUT_PATTERN_STRING "|" RAW_INPUT_PATTERN_VARIABLE ")"
 #define INPUT_PATTERN_TEXT "(" RAW_INPUT_PATTERN_TEXT "|" RAW_INPUT_PATTERN_VARIABLE ")"
 #define INPUT_PATTERN_TIME "((" RAW_INPUT_PATTERN_NUMBER "|" RAW_INPUT_PATTERN_VARIABLE ") (ms|s|m|h))"
-#define INPUT_PATTERN_BOOL "(" RAW_INPUT_PATTERN_BOOL "|" RAW_INPUT_PATTERN_VARIABLE ")"
+#define INPUT_PATTERN_COLOR "(" RAW_INPUT_PATTERN_COLOR "|" RAW_INPUT_PATTERN_VARIABLE ")"
 
 constexpr CHISL_NUMBER DEFAULT_THRESHOLD = 0.5f;
 constexpr DWORD DEFAULT_TYPING_DELAY = 0;
@@ -52,13 +53,17 @@ constexpr DWORD DEFAULT_TYPING_DELAY = 0;
 #define CONSTANT_RESULT "RESULT"
 #define CONSTANT_PASS_COUNT "PASS_COUNT"
 #define CONSTANT_FAIL_COUNT "FAIL_COUNT"
+#define CONSTANT_TRUE "true"
+#define CONSTANT_FALSE "false"
 
 static std::unordered_set<CHISL_STRING> CONSTANTS_NAMES =
 {
 	CONSTANT_OUTPUT,
 	CONSTANT_RESULT,
 	CONSTANT_PASS_COUNT,
-	CONSTANT_FAIL_COUNT
+	CONSTANT_FAIL_COUNT,
+	CONSTANT_TRUE,
+	CONSTANT_FALSE
 };
 
 /// <summary>
@@ -367,6 +372,28 @@ tesseract::PageIteratorLevel string_to_pil(CHISL_STRING const& str)
 	return tesseract::PageIteratorLevel::RIL_BLOCK;
 }
 
+#define TEXT_RESET "\033[0m"
+#define TEXT_FG_BLACK "\033[30m"
+#define TEXT_FG_RED "\033[31m"
+#define TEXT_FG_GREEN "\033[32m"
+#define TEXT_FG_YELLOW "\033[33m"
+#define TEXT_FG_BLUE "\033[34m"
+#define TEXT_FG_MAGENTA "\033[35m"
+#define TEXT_FG_CYAN "\033[36m"
+#define TEXT_FG_WHITE "\033[37m"
+#define TEXT_BG_BLACK "\033[40m"
+#define TEXT_BG_RED "\033[41m"
+#define TEXT_BG_GREEN "\033[42m"
+#define TEXT_BG_YELLOW "\033[43m"
+#define TEXT_BG_BLUE "\033[44m"
+#define TEXT_BG_MAGENTA "\033[45m"
+#define TEXT_BG_CYAN "\033[46m"
+#define TEXT_BG_WHITE "\033[47m"
+#define TEXT_BOLD "\033[1m"
+#define TEXT_DIM "\033[2m"
+#define TEXT_ITALIC "\033[3m"
+#define TEXT_UNDERLINE "\033[4"
+
 struct Config
 {
 	bool echo = false;
@@ -611,6 +638,12 @@ public:
 
 	void unset(CHISL_STRING const& name)
 	{
+		if (CONSTANTS_NAMES.contains(name))
+		{
+			// cannot unset constant
+			return;
+		}
+
 		m_variables.erase(name);
 	}
 };
@@ -640,9 +673,11 @@ enum ChislToken
 	CHISL_PUNCT_EQUAL_TO = 10120, // ==
 	CHISL_PUNCT_NOT_EQUAL_TO = 10130, // !=
 	CHISL_PUNCT_END_OF_LINE = 10140, // \n
+	CHISL_PUNCT_AND = 10150, // and
+	CHISL_PUNCT_OR = 10160, // or
 
 	CHISL_PUNCT_FIRST = CHISL_PUNCT_COMMENT,
-	CHISL_PUNCT_LAST = CHISL_PUNCT_END_OF_LINE,
+	CHISL_PUNCT_LAST = CHISL_PUNCT_OR,
 
 	//		Keywords
 	//	Variables
@@ -672,10 +707,18 @@ enum ChislToken
 
 	//	Util
 	CHISL_KEYWORD_WAIT = 22000, // wait <time> <ms/s/m/h>
+	CHISL_KEYWORD_COUNTDOWN = 22001, // countdown <time> <ms/s/m/h>
 	CHISL_KEYWORD_PAUSE = 22010, // pause
 	CHISL_KEYWORD_PRINT = 22020, // print <value>
+	CHISL_KEYWORD_PRINT_FG = 22021, // print <value> in <fg_color>
+	CHISL_KEYWORD_PRINT_FG_BG = 22022, // print <value> in <fg_color> and <bg_color>
+	CHISL_KEYWORD_PRINT_MOD = 22023, // print <value> <mods>
+	CHISL_KEYWORD_PRINT_MOD_FG = 22024, // print <value> <mods> in <fg_color>
+	CHISL_KEYWORD_PRINT_MOD_FG_BG = 22025, // print <value> <mods> in <fg_color> and <bg_color>
 	CHISL_KEYWORD_SHOW = 22030, // show <value>
 	CHISL_KEYWORD_OPEN = 22040, // open <path>
+	CHISL_KEYWORD_INPUT = 22050, // input to <var>
+	CHISL_KEYWORD_INPUT_PROMPT = 22051, // input <prompt> to <var>
 
 	//	Mouse
 	CHISL_KEYWORD_MOUSE_SET = 23000, // set mouse to <x> <y>
@@ -697,6 +740,7 @@ enum ChislToken
 	CHISL_KEYWORD_LABEL = 25000, // label <label>
 	CHISL_KEYWORD_GOTO = 25010, // goto <label>
 	CHISL_KEYWORD_GOTO_IF = 25011, // goto <label> if <condition>
+	CHISL_KEYWORD_EXIT = 25020, // exit
 
 	// Scripting
 	CHISL_KEYWORD_RECORD = 26000, // record to <path>
@@ -720,19 +764,22 @@ int token_get_precedence(ChislToken const token)
 {
 	switch (token)
 	{
+	case CHISL_PUNCT_AND:
+	case CHISL_PUNCT_OR:
+		return 1;
 	case CHISL_PUNCT_ADD:
 	case CHISL_PUNCT_SUBTRACT:
-		return 1;
+		return 2;
 	case CHISL_PUNCT_MULTIPLY:
 	case CHISL_PUNCT_DIVIDE:
-		return 2;
+		return 3;
 	case CHISL_PUNCT_GREATER_THAN:
 	case CHISL_PUNCT_GREATER_THAN_OR_EQUAL_TO:
 	case CHISL_PUNCT_LESS_THAN:
 	case CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO:
 	case CHISL_PUNCT_EQUAL_TO:
 	case CHISL_PUNCT_NOT_EQUAL_TO:
-		return 3;
+		return 4;
 	default:
 		return 0;
 	}
@@ -775,7 +822,9 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "<=", CHISL_PUNCT_LESS_THAN_OR_EQUAL_TO },
 		{ "==", CHISL_PUNCT_EQUAL_TO },
 		{ "!=", CHISL_PUNCT_NOT_EQUAL_TO },
-		{ "\n", CHISL_PUNCT_END_OF_LINE }
+		{ "\n", CHISL_PUNCT_END_OF_LINE },
+		{ "and", CHISL_PUNCT_AND },
+		{ "or", CHISL_PUNCT_OR }
 	};
 
 	auto found = types.find(string_to_lower(str));
@@ -837,10 +886,18 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_DRAW_RECT, "draw rect" },
 
 		{ CHISL_KEYWORD_WAIT, "wait" },
+		{ CHISL_KEYWORD_COUNTDOWN, "countdown" },
 		{ CHISL_KEYWORD_PAUSE, "pause" },
 		{ CHISL_KEYWORD_PRINT, "print" },
+		{ CHISL_KEYWORD_PRINT_FG, "print fg" },
+		{ CHISL_KEYWORD_PRINT_FG_BG, "print fg bg" },
+		{ CHISL_KEYWORD_PRINT_MOD, "print mods" },
+		{ CHISL_KEYWORD_PRINT_MOD_FG, "print mods fg" },
+		{ CHISL_KEYWORD_PRINT_MOD_FG_BG, "print mods fg bg" },
 		{ CHISL_KEYWORD_SHOW, "show" },
 		{ CHISL_KEYWORD_OPEN, "open" },
+		{ CHISL_KEYWORD_INPUT, "input" },
+		{ CHISL_KEYWORD_INPUT_PROMPT, "input prompt" },
 
 		{ CHISL_KEYWORD_MOUSE_SET, "move mouse to" },
 		{ CHISL_KEYWORD_MOUSE_SET_MATCH, "move mouse to match" },
@@ -859,6 +916,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_LABEL, "label" },
 		{ CHISL_KEYWORD_GOTO, "goto" },
 		{ CHISL_KEYWORD_GOTO_IF, "goto if" },
+		{ CHISL_KEYWORD_EXIT, "exit" },
 
 		{ CHISL_KEYWORD_RECORD, "record" },
 		{ CHISL_KEYWORD_RUN, "run" },
@@ -1495,44 +1553,90 @@ enum class MouseButton
 /// <param name="value"></param>
 void print(Value const& value)
 {
-	if (std::holds_alternative<CHISL_STRING>(value))
+	CHISL_STRING str = value_to_string(value);
+
+	if (str.starts_with("\"") && str.ends_with("\""))
 	{
-		std::cout << std::get<CHISL_STRING>(value) << std::endl;
+		str = str.substr(1, str.length() - 2);
+		str = string_replace(str, "\\\"", "\"");
 	}
-	else if (std::holds_alternative<Image>(value))
+
+	std::cout << str << std::endl;
+}
+
+void print_fg_color(CHISL_STRING const& color)
+{
+	CHISL_STRING c = string_to_lower(color);
+
+	if (c == "black")
 	{
-		std::cout << std::get<Image>(value).to_string() << std::endl;
-	}
-	else if (std::holds_alternative<Match>(value))
+		std::cout << TEXT_FG_BLACK;
+	} else if (c == "red")
 	{
-		std::cout << std::get<Match>(value).to_string() << std::endl;
-	}
-	else if (std::holds_alternative<MatchCollection>(value))
+		std::cout << TEXT_FG_RED;
+	} else if (c == "green")
 	{
-		MatchCollection collection = std::get<MatchCollection>(value);
-		size_t count = collection.count();
-		std::cout << "MatchCollection:";
-		for (size_t i = 0; i < count; i++)
-		{
-			std::cout << collection.get(i).to_string() << std::endl;
-		}
-	}
-	else if (std::holds_alternative<int>(value))
+		std::cout << TEXT_FG_GREEN;
+	} else if (c == "yellow")
 	{
-		std::cout << std::get<int>(value) << std::endl;
-	}
-	else if (std::holds_alternative<CHISL_NUMBER>(value))
+		std::cout << TEXT_FG_YELLOW;
+	} else if (c == "blue")
 	{
-		std::cout << std::get<CHISL_NUMBER>(value) << std::endl;
-	}
-	else if (std::holds_alternative<std::nullptr_t>(value))
+		std::cout << TEXT_FG_BLUE;
+	} else if (c == "magenta")
 	{
-		std::cout << "null" << std::endl;
+		std::cout << TEXT_FG_MAGENTA;
+	} else if (c == "cyan")
+	{
+		std::cout << TEXT_FG_CYAN;
+	} else if (c == "white")
+	{
+		std::cout << TEXT_FG_WHITE;
 	}
 	else
 	{
-		std::cerr << "Cannot print value." << std::endl;
+		std::cerr << "Invalid foreground color \"" << color << "\"." << std::endl;
 	}
+}
+
+void print_bg_color(CHISL_STRING const& color)
+{
+	CHISL_STRING c = string_to_lower(color);
+
+	if (c == "black")
+	{
+		std::cout << TEXT_BG_BLACK;
+	} else if (c == "red")
+	{
+		std::cout << TEXT_BG_RED;
+	} else if (c == "green")
+	{
+		std::cout << TEXT_BG_GREEN;
+	} else if (c == "yellow")
+	{
+		std::cout << TEXT_BG_YELLOW;
+	} else if (c == "blue")
+	{
+		std::cout << TEXT_BG_BLUE;
+	} else if (c == "magenta")
+	{
+		std::cout << TEXT_BG_MAGENTA;
+	} else if (c == "cyan")
+	{
+		std::cout << TEXT_BG_CYAN;
+	} else if (c == "white")
+	{
+		std::cout << TEXT_BG_WHITE;
+	}
+	else
+	{
+		std::cerr << "Invalid background color \"" << color << "\"." << std::endl;
+	}
+}
+
+void print_reset()
+{
+	std::cout << TEXT_RESET;
 }
 
 /// <summary>
@@ -1991,7 +2095,8 @@ enum ChislType
 	CHISL_TYPE_KEY = 1 << 6,
 	CHISL_TYPE_TEXT = 1 << 7,
 	CHISL_TYPE_TIME = 1 << 8,
-	CHISL_TYPE_ANY = 0b000111111111
+	CHISL_TYPE_COLOR = 1 << 9,
+	CHISL_TYPE_ANY = 0b001111111111
 };
 
 struct Parameter
@@ -2254,10 +2359,12 @@ public:
 		int result;
 
 		// init constants
-		m_scope.set_constant(CONSTANT_OUTPUT, 0);
-		m_scope.set_constant(CONSTANT_RESULT, 0);
-		m_scope.set_constant(CONSTANT_PASS_COUNT, 0);
-		m_scope.set_constant(CONSTANT_FAIL_COUNT, 0);
+		m_scope.set_constant(CONSTANT_OUTPUT, nullptr);
+		m_scope.set_constant(CONSTANT_RESULT, nullptr);
+		m_scope.set_constant(CONSTANT_PASS_COUNT, nullptr);
+		m_scope.set_constant(CONSTANT_FAIL_COUNT, nullptr);
+		m_scope.set_constant(CONSTANT_TRUE, 1);
+		m_scope.set_constant(CONSTANT_FALSE, 0);
 
 		for (; m_index < lines; m_index++)
 		{
@@ -2271,9 +2378,17 @@ public:
 			// execute the command
 			result = execute(command);
 
-			if (result)
+			m_scope.set_constant(CONSTANT_RESULT, result);
+
+			// if negative result, complete failure
+			// if positive result, keep going
+
+			if (result > 0)
 			{
 				print(std::format("Failed to execute command \"{}\" with error code {}.", command.to_string(), std::to_string(result)));
+			} else if (result < 0)
+			{
+				return result;
 			}
 
 			// go back one if needed
@@ -2396,6 +2511,12 @@ public:
 					case CHISL_PUNCT_NOT_EQUAL_TO:
 						operands.push_back(leftNumber != rightNumber);
 						break;
+					case CHISL_PUNCT_AND:
+						operands.push_back((leftNumber != 0.0) && (rightNumber != 0.0));
+						break;
+					case CHISL_PUNCT_OR:
+						operands.push_back((leftNumber != 0.0) || (rightNumber != 0.0));
+						break;
 					default:
 						std::cerr << "Unknown operator \"" << token.to_string() << "\" for any." << std::endl;
 						break;
@@ -2420,12 +2541,17 @@ public:
 						// just a string
 						operands.push_back(str.substr(1, str.length() - 2));
 					}
-					else
+					else if(m_scope.contains(str))
 					{
 						Value variableValue = m_scope.get(str);
 
 						// value within a variable
 						operands.push_back(variableValue);
+					}
+					else
+					{
+						// leave as text
+						operands.push_back(str);
 					}
 				}
 				else
@@ -2451,6 +2577,35 @@ public:
 		Parameter const& param = command.get_param(name);
 
 		Token token = command.get_arg(param.index);
+
+		Value value = token.get_data();
+
+		// always check for variables
+		if (std::holds_alternative<CHISL_STRING>(value) && m_scope.contains(std::get<CHISL_STRING>(value)))
+		{
+			Value newValue = m_scope.get(std::get<CHISL_STRING>(value));
+
+			// replace if the variable held a value
+			if (!std::holds_alternative<std::nullptr_t>(newValue))
+			{
+				value = newValue;
+			}
+		}
+
+		CHISL_STRING str = value_to_string(value);
+
+		if (str.starts_with("\"") && str.ends_with("\""))
+		{
+			str = str.substr(1, str.length() - 2);
+			str = string_replace(str, "\\\"", "\"");
+		}
+
+		return str;
+	}
+
+	CHISL_STRING get_string(Command const& command, CHISL_INDEX const index) const
+	{
+		Token token = command.get_arg(index);
 
 		Value value = token.get_data();
 
@@ -2505,13 +2660,12 @@ public:
 		return static_cast<CHISL_INT>(round(get_number(command, name)));
 	}
 
-	template<typename T>
-	T get_arg(Command const& command, CHISL_STRING const& name) const
+	Value get_value(Command const& command, CHISL_STRING const& name) const
 	{
 		Parameter const& param = command.get_param(name);
 
 		Token token = command.get_arg(param.index);
-		
+
 		Value value = token.get_data();
 
 		// always check for variables
@@ -2525,6 +2679,14 @@ public:
 				value = newValue;
 			}
 		}
+
+		return value;
+	}
+
+	template<typename T>
+	T get_arg(Command const& command, CHISL_STRING const& name) const
+	{
+		Value value = get_value(command, name);
 
 		if (std::holds_alternative<T>(value))
 		{
@@ -2680,7 +2842,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			Value value = program.evaluate(command.get_args(1));
 			program.get_scope().set(command.get_arg("var").to_string(), value);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, value);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, value);
 
 			return 0;
 		})},
@@ -2697,13 +2859,13 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			{
 				program.get_scope().set(command.get_arg("var").to_string(), value.value());
 
-				program.get_scope().set_constant(CONSTANT_RESULT, value.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, value.value());
 			}
 			else
 			{
 				print(CHISL_STRING("Unable to read from path \"").append(path).append("\"."));
 
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 			}
 
 			return 0;
@@ -2726,7 +2888,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 0, "var", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			program.get_scope().unset(program.get_string(command, "var"));
+			program.get_scope().unset(command.get_arg("var").to_string());
 
 			return 0;
 		}) },
@@ -2737,15 +2899,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 1, "destination", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			std::optional<Image> value = program.try_get_arg<Image>(command, "source");
+			Value value = program.get_value(command, "source");
 
-			// if image, copy differently
-			if (!value.has_value())
+			if (std::holds_alternative<Image>(value))
 			{
-				return 1;
+				value = std::get<Image>(value).clone();
 			}
 
-			program.get_scope().set(command.get_arg("destination").to_string(), value.value().clone());
+			program.get_scope().set(command.get_arg("destination").to_string(), value);
 
 			return 0;
 		}) },
@@ -2762,7 +2923,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			if (!collection.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 
 				return 1;
 			}
@@ -2772,7 +2933,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			if (index >= collection.value().count())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 
 				return 2;
 			}
@@ -2782,7 +2943,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			Value value = collection.value().get(index);
 			program.get_scope().set(name, value);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, value);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, value);
 
 			return 0;
 		}) },
@@ -2798,7 +2959,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			if (!collection.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 
 				return 1;
 			}
@@ -2808,7 +2969,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			CHISL_INT count = static_cast<CHISL_INT>(collection.value().count());
 			program.get_scope().set(name, count);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, count);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, count);
 
 			return 0;
 		}) },
@@ -2822,7 +2983,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			Image image = screenshot();
 			program.get_scope().set(command.get_arg("var").to_string(), image);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, image);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, image);
 
 			return 0;
 		}) },
@@ -2837,14 +2998,26 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			Image image = screenshot();
-			image = crop(image,
-				program.get_int(command, "x"),
-				program.get_int(command, "y"),
-				program.get_int(command, "w"),
-				program.get_int(command, "h"));
+			CHISL_INT screenWidth = image.get_width();
+			CHISL_INT screenHeight = image.get_height();
+
+			CHISL_INT x = std::clamp(program.get_int(command, "x"), 0, screenWidth);
+			CHISL_INT y = std::clamp(program.get_int(command, "y"), 0, screenHeight);
+
+			CHISL_INT w = std::clamp(program.get_int(command, "w"), 0, screenWidth - x);
+			CHISL_INT h = std::clamp(program.get_int(command, "h"), 0, screenHeight - y);
+
+			// if w and h not ok, stop
+			if (w == 0 || h == 0)
+			{
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
+				return 0;
+			}
+
+			image = crop(image, x, y, w, h);
 			program.get_scope().set(command.get_arg("var").to_string(), image);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, image);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, image);
 
 			return 0;
 		}) },
@@ -2858,18 +3031,31 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 4, "h", CHISL_TYPE_INT }
 		},
 		[](Command const& command, Program& program) {
-			std::optional<Image> image = program.try_get_arg<Image>(command, "var");
-			if (!image.has_value())
+			std::optional<Image> var = program.try_get_arg<Image>(command, "var");
+			if (!var.has_value())
 			{
 				return 1;
 			}
+			Image image = var.value();
 
-			image = crop(image.value(),
-				program.get_int(command, "x"),
-				program.get_int(command, "y"),
-				program.get_int(command, "w"),
-				program.get_int(command, "h"));
-			program.get_scope().set(command.get_arg("var").to_string(), image.value());
+			CHISL_INT imageWidth = image.get_width();
+			CHISL_INT imageHeight = image.get_height();
+
+			CHISL_INT x = std::clamp(program.get_int(command, "x"), 0, imageWidth);
+			CHISL_INT y = std::clamp(program.get_int(command, "y"), 0, imageHeight);
+
+			CHISL_INT w = std::clamp(program.get_int(command, "w"), 0, std::max(imageWidth - x, 0));
+			CHISL_INT h = std::clamp(program.get_int(command, "h"), 0, std::max(imageHeight - y, 0));
+
+			// if w and h not ok, stop
+			if (w == 0 || h == 0)
+			{
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
+				return 0;
+			}
+
+			image = crop(image, x, y, w, h);
+			program.get_scope().set(command.get_arg("var").to_string(), image);
 
 			return 0;
 		}) },
@@ -2884,14 +3070,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> templateImage = program.try_get_arg<Image>(command, "template");
 			if (!templateImage.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 2;
 			}
 
@@ -2899,12 +3085,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			if (found.has_value())
 			{
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 			}
 			else
 			{
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 			}
 
 			return 0;
@@ -2921,14 +3107,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> templateImage = program.try_get_arg<Image>(command, "template");
 			if (!templateImage.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 2;
 			}
 
@@ -2936,12 +3122,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Match> found = find(image.value(), templateImage.value(), threshold);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -2958,26 +3144,26 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> templateImage = program.try_get_arg<Image>(command, "template");
 			if (!templateImage.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 2;
 			}
 
 			std::optional<MatchCollection> found = find_all(image.value(), templateImage.value(), DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -2995,14 +3181,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> templateImage = program.try_get_arg<Image>(command, "template");
 			if (!templateImage.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 2;
 			}
 
@@ -3010,12 +3196,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<MatchCollection> found = find_all(image.value(), templateImage.value(), threshold);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -3035,19 +3221,19 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 			tesseract::PageIteratorLevel pil = string_to_pil(command.get_arg("type").to_string());
 			std::optional<Match> found = find_text(image.value(), templateText, pil, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -3068,7 +3254,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 2;
 			}
 
@@ -3077,12 +3263,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Match> found = find_text(image.value(), templateText, pil, threshold);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -3102,7 +3288,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
@@ -3110,12 +3296,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<MatchCollection> found = find_all_text(image.value(), templateText, pil, DEFAULT_THRESHOLD);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -3136,7 +3322,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
@@ -3145,12 +3331,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<MatchCollection> found = find_all_text(image.value(), templateText, pil, threshold);
 			if (found.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, found.value());
+				program.get_scope().set_constant(CONSTANT_OUTPUT, found.value());
 				program.get_scope().set(command.get_arg("var").to_string(), found.value());
 			}
 			else
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				program.get_scope().set(command.get_arg("var").to_string(), nullptr);
 			}
 
@@ -3166,7 +3352,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			std::optional<Image> image = program.try_get_arg<Image>(command, "image");
 			if (!image.has_value())
 			{
-				program.get_scope().set_constant(CONSTANT_RESULT, nullptr);
+				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
 				return 1;
 			}
 
@@ -3175,7 +3361,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			CHISL_STRING name = command.get_arg("var").to_string();
 			program.get_scope().set(name, text);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, text);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, text);
 
 			return 0;
 		}) },
@@ -3236,6 +3422,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			CHISL_INT time = program.get_int(command, "time");
+
+			if (time < 0)
+			{
+				return 1;
+			}
+
 			CHISL_STRING type = program.get_string(command, "unit");
 
 			if (type == "ms")
@@ -3256,8 +3448,73 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			}
 			else
 			{
+				return 2;
+			}
+
+			return 0;
+		}) },
+	{ CHISL_KEYWORD_COUNTDOWN, CommandTemplate(CHISL_KEYWORD_COUNTDOWN,
+		"countdown " INPUT_PATTERN_TIME "\\.\\s*$",
+		{
+		{ 0, "time", CHISL_TYPE_NUMBER },
+		{ 1, "unit", CHISL_TYPE_TIME }
+		},
+		[](Command const& command, Program& program) {
+			CHISL_INT time = program.get_int(command, "time");
+
+			if (time < 0)
+			{
 				return 1;
 			}
+
+			CHISL_STRING type = program.get_string(command, "unit");
+
+			auto start_time = std::chrono::high_resolution_clock::now();
+
+			DWORD msTime;
+
+			if (type == "ms")
+			{
+				msTime = time;
+			}
+			else if (type == "s")
+			{
+				msTime = time * 1000;
+			}
+			else if (type == "m")
+			{
+				msTime = time * 60000;
+			}
+			else if (type == "h")
+			{
+				msTime = time * 3600000;
+			}
+			else
+			{
+				return 2;
+			}
+
+			std::cout << '\n';
+
+			while (true)
+			{
+				auto current_time = std::chrono::high_resolution_clock::now();
+				auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(current_time - start_time).count();
+
+				int remaining = msTime - elapsed;
+
+				if (remaining <= 0)
+				{
+					break;
+				}
+
+				// Print remaining time with carriage return to overwrite previous output
+				std::cout << "\rWaiting: " << (remaining / 1000.0) << 's' << std::flush;
+
+				//std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+
+			std::cout << "\rDone waiting.";
 
 			return 0;
 		}) },
@@ -3271,9 +3528,9 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			return 0;
 		}) },
 	{ CHISL_KEYWORD_PRINT, CommandTemplate(CHISL_KEYWORD_PRINT,
-		"print " INPUT_PATTERN_ANY "\\.\\s*$",
+		"print " INPUT_PATTERN_STRING "\\.\\s*$",
 		{
-		{ 0, "value", CHISL_TYPE_ANY }
+		{ 0, "value", CHISL_TYPE_STRING }
 		},
 		[](Command const& command, Program& program) {
 			Value value = program.evaluate(command.get_args());
@@ -3288,8 +3545,66 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			return 0;
 		}) },
+	{ CHISL_KEYWORD_PRINT_FG, CommandTemplate(CHISL_KEYWORD_PRINT_FG,
+		"print " INPUT_PATTERN_STRING " in " INPUT_PATTERN_COLOR "\\.\\s*$",
+		{
+		{ 0, "value", CHISL_TYPE_STRING },
+		{ 1, "fg", CHISL_TYPE_COLOR }
+		},
+		[](Command const& command, Program& program) {
+
+			CHISL_STRING fg = string_to_lower(program.get_string(command, "fg"));
+			print_fg_color(fg);
+
+			Value value = program.get_value(command, "value");
+
+			if (std::holds_alternative<std::nullptr_t>(value))
+			{
+				print(tokens_to_string(command.get_args(), " "));
+			}
+			else
+			{
+				print(value);
+			}
+
+			// reset
+			std::cout << TEXT_RESET;
+
+			return 0;
+		}) },
+	{ CHISL_KEYWORD_PRINT_FG_BG, CommandTemplate(CHISL_KEYWORD_PRINT_FG_BG,
+		"print " INPUT_PATTERN_STRING " in " INPUT_PATTERN_COLOR " with " INPUT_PATTERN_COLOR "\\.\\s*$",
+		{
+		{ 0, "value", CHISL_TYPE_STRING },
+		{ 1, "fg", CHISL_TYPE_COLOR },
+		{ 2, "bg", CHISL_TYPE_COLOR }
+		},
+		[](Command const& command, Program& program) {
+
+			CHISL_STRING fg = string_to_lower(program.get_string(command, "fg"));
+			print_fg_color(fg);
+
+			CHISL_STRING bg = string_to_lower(program.get_string(command, "bg"));
+			print_bg_color(bg);
+
+			Value value = program.get_value(command, "value");
+
+			if (std::holds_alternative<std::nullptr_t>(value))
+			{
+				print(tokens_to_string(command.get_args(), " "));
+			}
+			else
+			{
+				print(value);
+			}
+
+			// reset
+			std::cout << TEXT_RESET;
+
+			return 0;
+		}) },
 	{ CHISL_KEYWORD_SHOW, CommandTemplate(CHISL_KEYWORD_SHOW,
-		"show " INPUT_PATTERN_ANY "\\.\\s*$",
+		"show " INPUT_PATTERN_STRING "\\.\\s*$",
 		{
 		{ 0, "value", CHISL_TYPE_ANY }
 		},
@@ -3315,6 +3630,41 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			CHISL_STRING path = program.get_string(command, "path");
 			open(path);
+
+			return 0;
+		}) },
+	{ CHISL_KEYWORD_INPUT, CommandTemplate(CHISL_KEYWORD_INPUT,
+		"input to " INPUT_PATTERN_VARIABLE "\\.\\s*$",
+		{
+		{ 0, "var", CHISL_TYPE_VARIABLE }
+		},
+		[](Command const& command, Program& program) {
+
+			CHISL_STRING input;
+			std::getline(std::cin, input);
+
+			CHISL_STRING var = command.get_arg("var").to_string();
+			program.get_scope().set(var, input);
+
+			return 0;
+		}) },
+	{ CHISL_KEYWORD_INPUT_PROMPT, CommandTemplate(CHISL_KEYWORD_INPUT,
+		"input " INPUT_PATTERN_STRING " to " INPUT_PATTERN_VARIABLE "\\.\\s*$",
+		{
+		{ 0, "prompt", CHISL_TYPE_STRING },
+		{ 1, "var", CHISL_TYPE_VARIABLE },
+		},
+		[](Command const& command, Program& program) {
+
+			CHISL_STRING prompt = program.get_string(command, "prompt");
+
+			std::cout << prompt;
+
+			CHISL_STRING input;
+			std::getline(std::cin, input);
+
+			CHISL_STRING var = command.get_arg("var").to_string();
+			program.get_scope().set(var, input);
 
 			return 0;
 		}) },
@@ -3631,6 +3981,13 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			return 0;
 		}) },
+	{ CHISL_KEYWORD_EXIT, CommandTemplate(CHISL_KEYWORD_EXIT,
+		"exit\\.\\s*$",
+		{
+		},
+		[](Command const& command, Program& program) {
+			return -1;
+		}) },
 
 	{ CHISL_KEYWORD_RECORD, CommandTemplate(CHISL_KEYWORD_RECORD,
 		"record to " INPUT_PATTERN_STRING "\\.\\s*$",
@@ -3644,7 +4001,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			// record to path
 			record(path);
 
-			program.get_scope().set_constant(CONSTANT_RESULT, path);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, path);
 
 			return 0;
 		}) },
@@ -3680,7 +4037,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			Program subProgram(str);
 			CHISL_INT result = subProgram.run();
 
-			program.get_scope().set_constant(CONSTANT_RESULT, result);
+			program.get_scope().set_constant(CONSTANT_OUTPUT, result);
 
 			return 0;
 		}) },
@@ -3709,9 +4066,6 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			// get test
 			CHISL_STRING test = program.get_string(command, "test");
 
-			// print test
-			print(CHISL_STRING("Testing: \"").append(test).append("\"."));
-
 			// catch output
 			std::ostringstream oss;
 			std::streambuf* originalCout = std::cout.rdbuf();
@@ -3738,18 +4092,20 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			if (resultNumber != 0.0)
 			{
 				// pass
-				print(std::format("[PASSED] {}", test));
+				std::cout << "[" << TEXT_FG_GREEN << "PASSED" << TEXT_RESET << "] ";
+				print(test);
 
-				scope.set_constant(CONSTANT_RESULT, 1.0);
+				scope.set_constant(CONSTANT_OUTPUT, 1.0);
 
 				scope.set_constant(CONSTANT_PASS_COUNT, value_to_number(scope.get(CONSTANT_PASS_COUNT)) + 1);
 			}
 			else
 			{
 				// fail
-				print(std::format("[FAILED] {} Evaluated: \"{}\". Result: \"{}\".", test, tokens_to_string(expectedTokens, " "), value_to_string(result)));
+				std::cout << "[" << TEXT_FG_RED << "FAILED" << TEXT_RESET << "] ";
+				print(std::format("{} Evaluated: \"{}\". Result: \"{}\".", test, tokens_to_string(expectedTokens, " "), value_to_string(result)));
 
-				scope.set_constant(CONSTANT_RESULT, 0.0);
+				scope.set_constant(CONSTANT_OUTPUT, 0.0);
 
 				scope.set_constant(CONSTANT_FAIL_COUNT, value_to_number(scope.get(CONSTANT_FAIL_COUNT)) + 1);
 			}

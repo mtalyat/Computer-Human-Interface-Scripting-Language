@@ -1,10 +1,14 @@
 
+# This test is not meant to be ran.
+
 Capture screen. 
 Capture screen at 0 0 1 1. 
 Set name to value. 
 Get name from collection at index. 
 Load name from path. 
+Load var from "path". 
 Save name to path. 
+Save var to "path". 
 Delete name. 
 Copy name to destination. 
 Crop name at 0 0 1 1. 
@@ -23,9 +27,11 @@ Wait 100 ms.
 Pause. 
 Print value. 
 Show value. 
-Set mouse to match. 
-Set mouse to x y. 
-Move mouse by x y. 
+Move mouse to match. 
+Move mouse to x y. 
+Move mouse to 0 0.
+Move mouse by x y.
+Move mouse by -100 100. 
 Press mouse left. 
 Release mouse middle. 
 Click mouse left. 
@@ -35,11 +41,13 @@ Scroll mouse y x.
 Press key escape.
 Release key escape. 
 Type value. 
-Type value with 100 delay. 
+Type value with 100 ms delay. 
+Type space.  
+Type f. 
 Label start. 
 Goto start. 
 Goto start if x < 100. 
 Record to path. 
 Run name. 
-Run script from path. 
 Open path. 
+Configure echo to true.
