@@ -685,6 +685,7 @@ enum ChislToken
 	CHISL_KEYWORD_LOAD = 20010, // load <var> from <path>
 	CHISL_KEYWORD_SAVE = 20020, // save <var> to <path>
 	CHISL_KEYWORD_DELETE = 20030, // delete <var>
+	CHISL_KEYWORD_DELETE_FILE = 20031, // delete file at <path>
 	CHISL_KEYWORD_COPY = 20040, // copy <source> to <destination>
 	CHISL_KEYWORD_GET = 20050, // get <var> from <collection> at <index>
 	CHISL_KEYWORD_COUNT = 20060, // count <var> from <collection>
@@ -866,6 +867,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_LOAD, "load" },
 		{ CHISL_KEYWORD_SAVE, "save" },
 		{ CHISL_KEYWORD_DELETE, "delete" },
+		{ CHISL_KEYWORD_DELETE_FILE, "delete file" },
 		{ CHISL_KEYWORD_COPY, "copy" },
 		{ CHISL_KEYWORD_GET, "get" },
 		{ CHISL_KEYWORD_COUNT, "count" },
@@ -1637,6 +1639,16 @@ void print_bg_color(CHISL_STRING const& color)
 void print_reset()
 {
 	std::cout << TEXT_RESET;
+}
+
+void show_cursor()
+{
+	std::cout << "\033[?25h";
+}
+
+void hide_cursor()
+{
+	std::cout << "\033[?25l";
 }
 
 /// <summary>
@@ -2854,18 +2866,24 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			CHISL_STRING path = program.get_string(command, "path");
-			std::optional<Value> value = file_read(path);
-			if (value.has_value())
-			{
-				program.get_scope().set(command.get_arg("var").to_string(), value.value());
+			try {
+				std::optional<Value> value = file_read(path);
+				if (value.has_value())
+				{
+					program.get_scope().set(command.get_arg("var").to_string(), value.value());
 
-				program.get_scope().set_constant(CONSTANT_OUTPUT, value.value());
+					program.get_scope().set_constant(CONSTANT_OUTPUT, value.value());
+				}
+				else
+				{
+					program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
+
+					return 2;
+				}
 			}
-			else
+			catch (...)
 			{
-				print(CHISL_STRING("Unable to read from path \"").append(path).append("\"."));
-
-				program.get_scope().set_constant(CONSTANT_OUTPUT, nullptr);
+				return 1;
 			}
 
 			return 0;
@@ -2878,7 +2896,14 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 			Value value = program.get_string(command, "var");
-			file_write(program.get_string(command, "path"), value);
+			try
+			{
+				file_write(program.get_string(command, "path"), value);
+			}
+			catch (...)
+			{
+				return 1;
+			}
 
 			return 0;
 		}) },
@@ -2888,7 +2913,39 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 0, "var", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			program.get_scope().unset(command.get_arg("var").to_string());
+			CHISL_STRING arg = command.get_arg("var").to_string();
+			program.get_scope().unset(arg);
+
+			return 0;
+		}) },
+	{ CHISL_KEYWORD_DELETE_FILE, CommandTemplate(CHISL_KEYWORD_DELETE_FILE,
+		"delete file at " INPUT_PATTERN_STRING "\\.\\s*$",
+		{
+		{ 0, "path", CHISL_TYPE_STRING }
+		},
+		[](Command const& command, Program& program) {
+			CHISL_STRING arg = program.get_string(command, "path");
+
+			if (!file_exists(arg))
+			{
+				return 1;
+			}
+
+			try {
+				if (std::filesystem::is_directory(arg))
+				{
+					std::filesystem::remove_all(arg);
+				}
+				else
+				{
+					std::filesystem::remove(arg);
+				}
+			}
+			catch (const std::filesystem::filesystem_error& e)
+			{
+				std::cerr << "Failed to delete file: " << e.what() << std::endl;
+				return 1;
+			}
 
 			return 0;
 		}) },
@@ -3494,6 +3551,8 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 				return 2;
 			}
 
+			hide_cursor();
+
 			std::cout << '\n';
 
 			while (true)
@@ -3514,7 +3573,9 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 				//std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 
-			std::cout << "\rDone waiting.";
+			std::cout << "\rDone waiting." << std::endl;
+
+			show_cursor();
 
 			return 0;
 		}) },

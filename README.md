@@ -50,10 +50,15 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | Command | Description |
 |---|---|
 | `Wait <time> <ms/s/m/h>.` | Pauses for the given number of milliseconds. |
+| `Countdown <time> <ms/s/m/h>.` | Pauses for the given number of milliseconds, and shows the time left in real time. |
 | `Pause.` | Pauses until the user hits a key. |
 | `Print <value>.` | Prints the text or variable to the console. |
-| `Show <value>.` | Shows the text or variable. |
+| `Print <value> in <black/red/green/yellow/blue/magenta/cyan/white>.` | Prints the text or variable to the console in the foreground color. |
+| `Print <value> in <black/red/green/yellow/blue/magenta/cyan/white> with <black/red/green/yellow/blue/magenta/cyan/white>.` | Prints the text or variable to the console in the foreground color with the background color. |
+| `Show <value>.` | Shows the text or variable, and pauses for input. |
 | `Open <path>.` | Opens a file or directory. |
+| `Input to <var>.` | Reads input from the user. |
+| `Input <prompt> to <var>.` | Reads input from the user with an inline prompt. |
 
 ### Mouse
 | Command | Description |
@@ -81,6 +86,7 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | `Label <label>.` | Creates a label that can be gone to with a goto statement. |
 | `Goto <label>.` | Starts executing at the given `label`. |
 | `Goto <label> if <condition>.` | Goes to the label only if the `condition` is true. |
+| `Exit.` | Quits the program. |
 
 ### Scripting
 | Command | Description |

@@ -3,6 +3,10 @@
 ## 1.4.0
 - Add printing error codes for invalid commands.
 - Add `Test` command.
+- Add `Input` command. Accepts input from the user.
+- Add `Countdown` command. Waits, but shows the time remaining in real time.
+- Add `Exit` command. Quits the program.
+- Add `and` and `or` operators.
 - Add operators for strings.
 - Add printing color. Allows for foreground and background. Allows for common word colors. Ex. `Print "text" in red.` or `Print "text" in red with white.`
   - Red
@@ -14,10 +18,6 @@
   - White
   - Black
 - Changed `Print` and `Show` to only allow for string or variable types.
-- Add `Input` command. Accepts input from the user.
-- Add `Countdown` command. Waits, but shows the time remaining in real time.
-- Add `Exit` command. Quits the program.
-- Add `and` and `or` operators.
 - Add `OUTPUT`, `RESULT`, `PASS_COUNT`, `FAIL_COUNT`, `true`, `false` constants.
 - Fix various bugs.
 
