@@ -24,6 +24,7 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | `Load <var> from <path>.` | Load a file from the path into the variable. |
 | `Save <var> to <path>.` | Saves a variable to the disk. |
 | `Delete <var>.` | Deletes the variable with the var. |
+| `Delete at <path>.` | Deletes the file or directory at `path`. |
 | `Copy <var> to <destination>.` | Copies the value of `variable` to `var`. |
 | `Get <var> from <collection> at <index>.` | Gets the value from a collection at the `index` and stores it in `var`. |
 | `Count <var> from <collection>.` | Stores the size of `collection` in `var`. |

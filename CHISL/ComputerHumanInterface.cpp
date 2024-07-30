@@ -685,7 +685,7 @@ enum ChislToken
 	CHISL_KEYWORD_LOAD = 20010, // load <var> from <path>
 	CHISL_KEYWORD_SAVE = 20020, // save <var> to <path>
 	CHISL_KEYWORD_DELETE = 20030, // delete <var>
-	CHISL_KEYWORD_DELETE_FILE = 20031, // delete file at <path>
+	CHISL_KEYWORD_DELETE_AT = 20031, // delete at <path>
 	CHISL_KEYWORD_COPY = 20040, // copy <source> to <destination>
 	CHISL_KEYWORD_GET = 20050, // get <var> from <collection> at <index>
 	CHISL_KEYWORD_COUNT = 20060, // count <var> from <collection>
@@ -867,7 +867,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_LOAD, "load" },
 		{ CHISL_KEYWORD_SAVE, "save" },
 		{ CHISL_KEYWORD_DELETE, "delete" },
-		{ CHISL_KEYWORD_DELETE_FILE, "delete file" },
+		{ CHISL_KEYWORD_DELETE_AT, "delete at" },
 		{ CHISL_KEYWORD_COPY, "copy" },
 		{ CHISL_KEYWORD_GET, "get" },
 		{ CHISL_KEYWORD_COUNT, "count" },
@@ -2918,8 +2918,8 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			return 0;
 		}) },
-	{ CHISL_KEYWORD_DELETE_FILE, CommandTemplate(CHISL_KEYWORD_DELETE_FILE,
-		"delete file at " INPUT_PATTERN_STRING "\\.\\s*$",
+	{ CHISL_KEYWORD_DELETE_AT, CommandTemplate(CHISL_KEYWORD_DELETE_AT,
+		"delete at " INPUT_PATTERN_STRING "\\.\\s*$",
 		{
 		{ 0, "path", CHISL_TYPE_STRING }
 		},
@@ -2941,9 +2941,8 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 					std::filesystem::remove(arg);
 				}
 			}
-			catch (const std::filesystem::filesystem_error& e)
+			catch (... /*const std::filesystem::filesystem_error& e*/)
 			{
-				std::cerr << "Failed to delete file: " << e.what() << std::endl;
 				return 1;
 			}
 
