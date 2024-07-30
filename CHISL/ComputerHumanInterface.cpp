@@ -1314,7 +1314,7 @@ std::optional<Match> find_text(Image const& image, CHISL_STRING const& text, tes
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
@@ -1431,7 +1431,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, CHISL_STRING co
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
@@ -1498,7 +1498,7 @@ CHISL_STRING read_from_image(Image const& image)
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init(nullptr, "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return "";
 	}

@@ -120,6 +120,11 @@
       <AdditionalLibraryDirectories>C:\Libraries\OpenCV\opencv\build\x64\vc16\lib;C:\Libraries\VKPKG\vcpkg\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world4100d.lib;%(AdditionalDependencies);archive.lib;bz2.lib;charset.lib;gif.lib;iconv.lib;jpeg.lib;leptonica-1.84.1.lib;libcrypto.lib;libcurl.lib;libpng16.lib;libsharpyuv.lib;libssl.lib;libwebp.lib;libwebpdecoder.lib;libwebpdemux.lib;libwebpmux.lib;libxml2.lib;lz4.lib;lzma.lib;openjp2.lib;tesseract54.lib;tiff.lib;turbojpeg.lib;zlib.lib;zstd.lib;crypt32.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)tessdata
+xcopy /Y /I $(TargetDir)$(TargetFileName) $(TargetDir)CHISL\
+xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -141,6 +146,11 @@
       <AdditionalLibraryDirectories>C:\Libraries\OpenCV\opencv\build\x64\vc16\lib;C:\Libraries\VKPKG\vcpkg\installed\x64-windows-static\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world4100.lib;%(AdditionalDependencies);archive.lib;bz2.lib;charset.lib;gif.lib;iconv.lib;jpeg.lib;leptonica-1.84.1.lib;libcrypto.lib;libcurl.lib;libpng16.lib;libsharpyuv.lib;libssl.lib;libwebp.lib;libwebpdecoder.lib;libwebpdemux.lib;libwebpmux.lib;libxml2.lib;lz4.lib;lzma.lib;openjp2.lib;tesseract54.lib;tiff.lib;turbojpeg.lib;zlib.lib;zstd.lib;crypt32.lib</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)tessdata
+xcopy /Y /I $(TargetDir)$(TargetFileName) $(TargetDir)CHISL\
+xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ComputerHumanInterface.cpp" />
