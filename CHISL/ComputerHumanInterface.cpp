@@ -829,6 +829,7 @@ ChislToken parse_token_type(CHISL_STRING const& str)
 		{ "mouse", CHISL_FILLER },
 		{ "key", CHISL_FILLER },
 		{ "expect", CHISL_FILLER },
+		{ "monitor", CHISL_FILLER },
 
 		{ "#", CHISL_PUNCT_COMMENT },
 		{ ".", CHISL_PUNCT_COMMIT },
@@ -1110,14 +1111,14 @@ std::optional<Image> image_read(CHISL_STRING const& path)
 {
 	if (!std::filesystem::exists(path))
 	{
-		std::cerr << "Failed to read image. " << path << " does not exist.\n";
+		std::cerr << "Failed to read image. " << path << " does not exist." << std::endl;
 		return std::nullopt;
 	}
 
 	try {
 		CHISL_MATRIX image = cv::imread(path, cv::IMREAD_COLOR);
 		if (image.empty()) {
-			std::cerr << "Failed to load image. " << path << std::endl;
+			std::cerr << "Failed to read image. " << path << " is empty." << std::endl;
 			return std::nullopt;
 		}
 		return Image(image);
@@ -3582,7 +3583,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 0, "number", CHISL_TYPE_INT }
 		},
 		[](Command const& command, Program& program) {
-			CHISL_INT number = program.get_int(command, "x");
+			CHISL_INT number = program.get_int(command, "number");
 
 			MonitorData& monitorData = program.get_monitor_data();
 			monitorData.targetMonitorIndex = number - 1;
@@ -3855,9 +3856,12 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		},
 		[](Command const& command, Program& program) {
 
+			// get offset for monitor
+			auto offset = program.get_monitor_data().get_offset();
+
 			mouse_set(
-				program.get_int(command, "x"),
-				program.get_int(command, "y"));
+				offset.x + program.get_int(command, "x"),
+				offset.y + program.get_int(command, "y"));
 
 			return 0;
 		}) },
