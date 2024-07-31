@@ -13,6 +13,7 @@
 #include <chrono>
 #include <thread>
 #include <format>
+#include <cstdio>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 
@@ -65,6 +66,33 @@ static std::unordered_set<CHISL_STRING> CONSTANTS_NAMES =
 	CONSTANT_TRUE,
 	CONSTANT_FALSE
 };
+
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+// Gets the CHISL environment path variable.
+CHISL_STRING get_path()
+{
+	char* chislPath = nullptr;
+	size_t len = 0;
+
+	// Retrieve the environment variable safely
+	errno_t err = _dupenv_s(&chislPath, &len, "CHISL_PATH");
+
+	if (err == 0 && chislPath)
+	{
+		CHISL_STRING path = chislPath;
+
+		free(chislPath);
+
+		return path;
+	}
+
+	std::cerr << "CHISL_PATH environment variable not set. Some features may be unavailable until it is set." << std::endl;
+
+	return "";
+}
 
 /// <summary>
 /// Converts the given string into lower case characters.
@@ -1314,7 +1342,7 @@ std::optional<Match> find_text(Image const& image, CHISL_STRING const& text, tes
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init(get_path().append("/tessdata").c_str(), "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
@@ -1431,7 +1459,7 @@ std::optional<MatchCollection> find_all_text(Image const& image, CHISL_STRING co
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init(get_path().append("/tessdata").c_str(), "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return std::nullopt;
 	}
@@ -1498,7 +1526,7 @@ CHISL_STRING read_from_image(Image const& image)
 	CHISL_MATRIX src = srcImage.get();
 
 	tesseract::TessBaseAPI ocr;
-	if (ocr.Init("tessdata", "eng", tesseract::OEM_LSTM_ONLY)) {
+	if (ocr.Init(get_path().append("/tessdata").c_str(), "eng", tesseract::OEM_LSTM_ONLY)) {
 		std::cerr << "Could not initialize tesseract.\n";
 		return "";
 	}
@@ -4194,6 +4222,9 @@ int main(int argc, char* argv[])
 		std::cerr << "Inputted path does not lead to a .chisl file.\n";
 		return 3;
 	}
+
+	// INIT
+	get_path();
 
 	// SETUP
 	cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);

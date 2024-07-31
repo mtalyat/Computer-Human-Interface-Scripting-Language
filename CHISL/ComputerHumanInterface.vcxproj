@@ -122,8 +122,10 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)tessdata
+xcopy /Y /I $(ProjectDir)..\Data\opencvdata\opencv_world4100.dll $(TargetDir)\
 xcopy /Y /I $(TargetDir)$(TargetFileName) $(TargetDir)CHISL\
-xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata</Command>
+xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata
+xcopy /Y /I $(ProjectDir)..\Data\opencvdata\opencv_world4100.dll $(TargetDir)CHISL\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -148,8 +150,10 @@ xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata</Command
     </Link>
     <PostBuildEvent>
       <Command>xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)tessdata
+xcopy /Y /I $(ProjectDir)..\Data\opencvdata\opencv_world4100.dll $(TargetDir)\
 xcopy /Y /I $(TargetDir)$(TargetFileName) $(TargetDir)CHISL\
-xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata</Command>
+xcopy /E /I /Y $(ProjectDir)..\Data\tessdata $(TargetDir)CHISL\tessdata
+xcopy /Y /I $(ProjectDir)..\Data\opencvdata\opencv_world4100.dll $(TargetDir)CHISL\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

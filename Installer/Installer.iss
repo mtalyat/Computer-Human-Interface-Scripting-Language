@@ -46,8 +46,9 @@ WizardStyle=modern
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "..\CHISL\x64\Release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\CHISL\x64\Release\tessdata"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\CHISL\x64\Release\CHISL\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\CHISL\x64\Release\CHISL\opencv_world4100.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\CHISL\x64\Release\CHISL\tessdata"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
@@ -56,6 +57,8 @@ Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}"; ValueType: string; Value
 Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
 Root: HKA; Subkey: "Software\Classes\{#MyAppAssocKey}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
 Root: HKA; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".myp"; ValueData: ""
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Control\Session Manager\Environment"; ValueType: expandsz; ValueName: "CHISL_PATH"; ValueData: "{app}"; Flags: preservestringtype
+
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
