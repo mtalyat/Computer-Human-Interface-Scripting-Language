@@ -3580,8 +3580,6 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 
 			hide_cursor();
 
-			std::cout << '\n';
-
 			while (true)
 			{
 				auto current_time = std::chrono::high_resolution_clock::now();
