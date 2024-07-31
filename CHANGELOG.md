@@ -1,5 +1,9 @@
 # Change log
 
+## 1.5.0
+- Add CHISL_PATH environment variable.
+- Fix installer missing opencv dll.
+
 ## 1.4.0
 - Add printing error codes for invalid commands.
 - Add `Test` command.
