@@ -757,7 +757,7 @@ enum ChislToken
 	CHISL_KEYWORD_MOUSE_RELEASE = 23030, // release mouse <button>
 	CHISL_KEYWORD_MOUSE_CLICK = 23040, // click mouse <button>
 	CHISL_KEYWORD_MOUSE_CLICK_TIMES = 23041, // click mouse <button> <times> times
-	CHISL_KEYWORD_MOUSE_SCROLL = 23050, // scroll mouse <y> <x=0>
+	CHISL_KEYWORD_MOUSE_SCROLL = 23050, // scroll mouse by <y> <x=0>
 
 	//	Keyboard
 	CHISL_KEYWORD_KEY_PRESS = 24000, // press key <key>
@@ -2014,8 +2014,8 @@ LRESULT CALLBACK keyboard_hook(int const nCode, WPARAM wParam, LPARAM lParam)
 }
 
 LRESULT CALLBACK mouse_hook(int nCode, WPARAM wParam, LPARAM lParam) {
-	if (nCode == HC_ACTION) {
-		MSLLHOOKSTRUCT* pMouse = (MSLLHOOKSTRUCT*)lParam;
+	MSLLHOOKSTRUCT* pMouse = (MSLLHOOKSTRUCT*)lParam;
+	if (nCode == HC_ACTION && pMouse) {
 		switch (wParam) {
 		case WM_LBUTTONDOWN:
 			record_wait();
@@ -2037,6 +2037,18 @@ LRESULT CALLBACK mouse_hook(int nCode, WPARAM wParam, LPARAM lParam) {
 			record_wait();
 			*recordingFile << "Set mouse to " << pMouse->pt.x << " " << pMouse->pt.y << "." << std::endl;
 			break;
+		case WM_MOUSEWHEEL:
+		{
+			int scrollDelta = GET_WHEEL_DELTA_WPARAM(pMouse->mouseData);
+			*recordingFile << "Scroll mouse by " << scrollDelta << "." << std::endl;
+			break;
+		}
+		case WM_MOUSEHWHEEL:
+		{
+			int scrollDelta = GET_WHEEL_DELTA_WPARAM(pMouse->mouseData);
+			*recordingFile << "Scroll mouse by 0 " << scrollDelta << "." << std::endl;
+			break;
+		}
 		}
 	}
 	return CallNextHookEx(mouseHook, nCode, wParam, lParam);
@@ -3921,7 +3933,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			return 0;
 		}) },
 	{ CHISL_KEYWORD_MOUSE_SCROLL, CommandTemplate(CHISL_KEYWORD_MOUSE_SCROLL,
-		"scroll mouse " INPUT_PATTERN_INT "( " INPUT_PATTERN_INT ")?\\.\\s*$",
+		"scroll mouse by " INPUT_PATTERN_INT "( " INPUT_PATTERN_INT ")?\\.\\s*$",
 		{
 		{ 0, "y", CHISL_TYPE_INT },
 		{ 1, "x", CHISL_TYPE_INT },

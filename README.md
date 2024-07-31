@@ -71,7 +71,7 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | `Release mouse <button=left>.` | Sends a mouse button release event to the OS. |
 | `Click mouse <button=left>.` | Sends a mouse down and mouse up event to the OS. |
 | `Click mouse <button=left> <times> times.` | Sends multiple mouse down and mouse up event to the OS. |
-| `Scroll mouse <y> <x=0>.` | Sends a mouse scroll event to the OS. |
+| `Scroll mouse by <y> <x=0>.` | Sends a mouse scroll event to the OS. |
 
 ### Keyboard
 | Command | Description |
