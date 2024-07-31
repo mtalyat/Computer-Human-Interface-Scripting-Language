@@ -13,7 +13,7 @@
 #include <chrono>
 #include <thread>
 #include <format>
-#include <cstdio>
+#include <cstdlib>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 
@@ -25,6 +25,8 @@ typedef unsigned CHISL_INDEX; // MUST BE UNSIGNED OR IT WILL BREAK FOR LOOPS
 typedef cv::Mat CHISL_MATRIX;
 typedef cv::Point CHISL_POINT;
 typedef WORD CHISL_KEY;
+
+#define CHISL_PATH_NAME "CHISL_PATH"
 
 #define RAW_INPUT_PATTERN_VARIABLE "[a-zA-Z]\\w*"
 #define RAW_INPUT_PATTERN_NUMBER "[\\+-]?\\d?\\.?\\d+"
@@ -74,22 +76,12 @@ static std::unordered_set<CHISL_STRING> CONSTANTS_NAMES =
 // Gets the CHISL environment path variable.
 CHISL_STRING get_path()
 {
-	char* chislPath = nullptr;
-	size_t len = 0;
+	char const* path = std::getenv(CHISL_PATH_NAME);
 
-	// Retrieve the environment variable safely
-	errno_t err = _dupenv_s(&chislPath, &len, "CHISL_PATH");
-
-	if (err == 0 && chislPath)
+	if (path)
 	{
-		CHISL_STRING path = chislPath;
-
-		free(chislPath);
-
-		return path;
+		return std::filesystem::path(path).generic_string();
 	}
-
-	std::cerr << "CHISL_PATH environment variable not set. Some features may be unavailable until it is set." << std::endl;
 
 	return "";
 }
@@ -733,6 +725,7 @@ enum ChislToken
 	CHISL_KEYWORD_READ = 21030, // read <var> from <image>
 	CHISL_KEYWORD_DRAW = 21040, // draw <match> on <image>
 	CHISL_KEYWORD_DRAW_RECT = 21041, // draw <x> <y> <w> <h> on <image>
+	CHISL_KEYWORD_TARGET = 21050, // target monitor <number>
 
 	//	Util
 	CHISL_KEYWORD_WAIT = 22000, // wait <time> <ms/s/m/h>
@@ -914,6 +907,7 @@ CHISL_STRING string_token_type(ChislToken const token)
 		{ CHISL_KEYWORD_READ, "read" },
 		{ CHISL_KEYWORD_DRAW, "draw" },
 		{ CHISL_KEYWORD_DRAW_RECT, "draw rect" },
+		{ CHISL_KEYWORD_TARGET, "target monitor" },
 
 		{ CHISL_KEYWORD_WAIT, "wait" },
 		{ CHISL_KEYWORD_COUNTDOWN, "countdown" },
@@ -1219,6 +1213,79 @@ void file_write(CHISL_STRING const& path, Value const& value)
 	{
 		std::cerr << "Failed to write file to " << path << "." << std::endl;
 	}
+}
+
+struct MonitorData {
+	int targetMonitorIndex;
+	int currentMonitorIndex;
+	MONITORINFO monitorInfo;
+
+	CHISL_POINT get_offset() const
+	{
+		int x = monitorInfo.rcMonitor.left;
+		int y = monitorInfo.rcMonitor.bottom;
+
+		return CHISL_POINT(x, y);
+	}
+
+	CHISL_POINT get_size() const
+	{
+		int w = monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left;
+		int h = monitorInfo.rcMonitor.top - monitorInfo.rcMonitor.bottom;
+
+		return CHISL_POINT(w, h);
+	}
+};
+
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
+	MonitorData* monitorData = (MonitorData*)dwData;
+	if (monitorData->currentMonitorIndex == monitorData->targetMonitorIndex) {
+		monitorData->monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfo(hMonitor, &monitorData->monitorInfo);
+		return FALSE;
+	}
+	monitorData->currentMonitorIndex++;
+	return TRUE;
+}
+
+BOOL CALLBACK MonitorCountProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
+	int* count = reinterpret_cast<int*>(dwData);
+	(*count)++;
+	return TRUE;
+}
+
+CHISL_INT get_monitor_count()
+{
+	CHISL_INT monitorCount = 0;
+
+	// Enumerate monitors and count them
+	EnumDisplayMonitors(nullptr, nullptr, MonitorCountProc, reinterpret_cast<LPARAM>(&monitorCount));
+
+	return monitorCount;
+}
+
+CHISL_INT target_monitor(MonitorData& monitorData)
+{
+	if (monitorData.targetMonitorIndex == monitorData.currentMonitorIndex)
+	{
+		return 0;
+	}
+
+	if (monitorData.targetMonitorIndex < 0 || monitorData.targetMonitorIndex >= get_monitor_count())
+	{
+		return -1;
+	}
+
+	// Enumerate monitors and find the target monitor
+	EnumDisplayMonitors(nullptr, nullptr, MonitorEnumProc, (LPARAM)&monitorData);
+
+	// check if not moved
+	if (monitorData.targetMonitorIndex == monitorData.currentMonitorIndex)
+	{
+		return 1;
+	}
+
+	return 0;
 }
 
 /// <summary>
@@ -2331,6 +2398,7 @@ private:
 	CHISL_INDEX m_index;
 	Scope m_scope;
 	Config m_config;
+	MonitorData m_monitorData;
 
 	static std::unordered_map<ChislToken, CommandTemplate> s_commandTemplates;
 
@@ -2402,6 +2470,7 @@ public:
 	Scope const& get_scope() const { return m_scope; }
 	Config& get_config() { return m_config; }
 	void set_index(CHISL_INDEX const index) { m_index = index; }
+	MonitorData& get_monitor_data() { return m_monitorData; }
 
 	CHISL_INT run()
 	{
@@ -2438,10 +2507,8 @@ public:
 			if (result > 0)
 			{
 				print(std::format("Failed to execute command \"{}\" with error code {}.", command.to_string(), std::to_string(result)));
-			} else if (result < 0)
-			{
-				return result;
 			}
+			// result < 0 is silent
 
 			// go back one if needed
 			if (m_skipIncrement)
@@ -3494,10 +3561,10 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 		{ 4, "image", CHISL_TYPE_VARIABLE }
 		},
 		[](Command const& command, Program& program) {
-			int x = program.get_int(command, "x");
-			int y = program.get_int(command, "y");
-			int w = program.get_int(command, "w");
-			int h = program.get_int(command, "h");
+			CHISL_INT x = program.get_int(command, "x");
+			CHISL_INT y = program.get_int(command, "y");
+			CHISL_INT w = program.get_int(command, "w");
+			CHISL_INT h = program.get_int(command, "h");
 
 			std::optional<Image> image = program.get_arg<Image>(command, "x");
 			if (image.has_value())
@@ -3508,6 +3575,19 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			draw_rect(image.value(), x, y, w, h);
 
 			return 0;
+		}) },
+	{ CHISL_KEYWORD_TARGET, CommandTemplate(CHISL_KEYWORD_TARGET,
+		"target monitor " INPUT_PATTERN_INT "\\.\\s*$",
+		{
+		{ 0, "number", CHISL_TYPE_INT }
+		},
+		[](Command const& command, Program& program) {
+			CHISL_INT number = program.get_int(command, "x");
+
+			MonitorData& monitorData = program.get_monitor_data();
+			monitorData.targetMonitorIndex = number - 1;
+
+			return target_monitor(monitorData);
 		}) },
 
 	{ CHISL_KEYWORD_WAIT, CommandTemplate(CHISL_KEYWORD_WAIT,
@@ -4234,7 +4314,11 @@ int main(int argc, char* argv[])
 	}
 
 	// INIT
-	get_path();
+	CHISL_STRING path = get_path();
+	if (path.empty())
+	{
+		std::cerr << CHISL_PATH_NAME << " environment variable not set. Some functionality may not work until it is set. Try restarting your device." << std::endl;
+	}
 
 	// SETUP
 	cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_ERROR);

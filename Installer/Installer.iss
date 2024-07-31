@@ -48,7 +48,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Files]
 Source: "..\CHISL\x64\Release\CHISL\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHISL\x64\Release\CHISL\opencv_world4100.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\CHISL\x64\Release\CHISL\tessdata"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\CHISL\x64\Release\CHISL\tessdata\eng.traineddata"; DestDir: "{app}\tessdata"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Registry]
