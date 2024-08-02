@@ -46,7 +46,6 @@ Check out the [Wiki](https://github.com/mtalyat/Computer-Human-Interface-Scripti
 | `Read <var> from <image>.` | Reads all of the text in `image`. |
 | `Draw <match> on <image>.` | Draws an outline of `match` onto `image`. |
 | `Draw <x> <y> <w> <h> on <image>.` | Draws a rectangle into `image`. |
-| `Target monitor <number>.` | Sets the working monitor. |
 
 ### Utility
 | Command | Description |
