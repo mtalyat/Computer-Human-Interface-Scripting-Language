@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.3.1
+
+- Fix `Find text` template typos.
+- Fix `Find text` text type order.
+
 ## 1.3.0
 
 - Add support for CHISL 1.4.0.

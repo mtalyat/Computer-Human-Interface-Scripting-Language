@@ -16,7 +16,12 @@ None as of now.
 
 ## Release Notes
 
-## 1.3.0
+### 1.3.1
+
+- Fix `Find text` template typos.
+- Fix `Find text` text type order.
+
+### 1.3.0
 
 - Add support for CHISL 1.4.0.
 - Add autocomplete to `type key`, `press key` and `release key` snippets.
@@ -25,13 +30,3 @@ None as of now.
 ### 1.2.0
 
 - Add support for CHISL 1.3.0.
-
-### 1.1.2
-
-- Fix syntax coloring for \_\_\_ `mouse` and \_\_\_ `key`.
-- Fix syntax coloring for `times`.
-
-### 1.1.1
-
-- Add support for CHISL 1.2.0.
-- Add syntax support for Count.
