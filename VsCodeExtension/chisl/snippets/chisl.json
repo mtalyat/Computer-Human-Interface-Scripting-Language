@@ -100,28 +100,28 @@
     "Find text": {
         "prefix": "find text",
         "body": [
-            "Find text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:text} in ${4:image}. "
+            "Find text ${1|block,paragraph,line,word,symbol|} ${2:var} by ${3:text} in ${4:image}. "
         ],
         "description": "Finds the best match of text `text` within `image` equal to or above the default threshold."
     },
     "Find text with": {
         "prefix": "find text with",
         "body": [
-            "Find text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:text} in ${4:image} with ${5:threshold}. "
+            "Find text ${1|block,paragraph,line,word,symbol|} ${2:var} by ${3:text} in ${4:image} with ${5:threshold}. "
         ],
         "description": "Finds the best match of text `text` within `image` equal to or above the given threshold."
     },
     "Find all text": {
         "prefix": "find all text",
         "body": [
-            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:text} in ${4:image}. "
+            "Find all text ${1|block,paragraph,line,word,symbol|} ${2:var} by ${3:text} in ${4:image}. "
         ],
         "description": "Finds all possible text matches equal to or above the default threshold."
     },
     "Find all text with": {
         "prefix": "find all text with",
         "body": [
-            "Find all text ${1|block,paragraph,symbol,line,word|} ${2:var} by ${3:text} in ${4:image} with ${5:threshold}. "
+            "Find all text ${1|block,paragraph,line,word,symbol|} ${2:var} by ${3:text} in ${4:image} with ${5:threshold}. "
         ],
         "description": "Finds all possible text matches equal to or above the given threshold."
     },
