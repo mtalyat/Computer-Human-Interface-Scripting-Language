@@ -1,5 +1,9 @@
 # Change log
 
+## 1.4.2
+- Fix `Exit`. It now exits the program, as one would expect.
+` Change test result wording to present participles for more conciseness.
+
 ## 1.4.1
 - Add `CHISL_PATH` environment variable.
 - Fix installer missing opencv dll.

@@ -86,11 +86,7 @@ CHISL_STRING get_path()
 	return "";
 }
 
-/// <summary>
-/// Converts the given string into lower case characters.
-/// </summary>
-/// <param name="str"></param>
-/// <returns></returns>
+// Converts the given string into lower case characters.
 CHISL_STRING string_to_lower(CHISL_STRING str)
 {
 	std::transform(str.begin(), str.end(), str.begin(),
@@ -98,12 +94,7 @@ CHISL_STRING string_to_lower(CHISL_STRING str)
 	return str;
 }
 
-/// <summary>
-/// Splits the given string based on the given regex.
-/// </summary>
-/// <param name="str"></param>
-/// <param name="re"></param>
-/// <returns></returns>
+// Splits the given string based on the given regex.
 std::vector<CHISL_STRING> string_split(CHISL_STRING const& str, std::regex const& re)
 {
 	std::vector<CHISL_STRING> tokens;
@@ -119,11 +110,7 @@ std::vector<CHISL_STRING> string_split(CHISL_STRING const& str, std::regex const
 	return tokens;
 }
 
-/// <summary>
-/// Trims all whitespace from the beginning and end of the given string.
-/// </summary>
-/// <param name="str"></param>
-/// <returns></returns>
+// Trims all whitespace from the beginning and end of the given string.
 CHISL_STRING string_trim(const CHISL_STRING& str) {
 	auto start = std::find_if_not(str.begin(), str.end(), [](int ch) {
 		return std::isspace(ch);
@@ -2507,9 +2494,15 @@ public:
 
 			if (result > 0)
 			{
+				// error
 				print(std::format("Failed to execute command \"{}\" with error code {}.", command.to_string(), std::to_string(result)));
 			}
-			// result < 0 is silent
+			
+			if (result < 0)
+			{
+				// close program
+				break;
+			}
 
 			// go back one if needed
 			if (m_skipIncrement)
@@ -4274,7 +4267,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			if (resultNumber != 0.0)
 			{
 				// pass
-				std::cout << "[" << TEXT_FG_GREEN << "PASSED" << TEXT_RESET << "] ";
+				std::cout << "[" << TEXT_FG_GREEN << "PASS" << TEXT_RESET << "] ";
 				print(test);
 
 				scope.set_constant(CONSTANT_OUTPUT, 1.0);
@@ -4284,7 +4277,7 @@ std::unordered_map<ChislToken, CommandTemplate> Program::s_commandTemplates =
 			else
 			{
 				// fail
-				std::cout << "[" << TEXT_FG_RED << "FAILED" << TEXT_RESET << "] ";
+				std::cout << "[" << TEXT_FG_RED << "FAIL" << TEXT_RESET << "] ";
 				print(std::format("{} Evaluated: \"{}\". Result: \"{}\".", test, tokens_to_string(expectedTokens, " "), value_to_string(result)));
 
 				scope.set_constant(CONSTANT_OUTPUT, 0.0);
